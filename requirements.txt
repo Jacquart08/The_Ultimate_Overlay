@@ -1,0 +1,4 @@
+PyQt6
+pygetwindow
+pywin32
+keyboard 

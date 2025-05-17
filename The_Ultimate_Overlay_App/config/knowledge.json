@@ -1,0 +1,32 @@
+{
+  "SQL Server Management Studio": [
+    {"title": "WHERE", "description": "Filters records based on a condition. Example: SELECT * FROM table WHERE condition;"},
+    {"title": "LIKE", "description": "Searches for a specified pattern in a column. Example: SELECT * FROM table WHERE column LIKE '%value%';"},
+    {"title": "CASE", "description": "Conditional expression. Example: SELECT column, CASE WHEN condition THEN result ELSE other END FROM table;"},
+    {"title": "GROUP BY", "description": "Groups rows that have the same values. Example: SELECT column, COUNT(*) FROM table GROUP BY column;"},
+    {"title": "ORDER BY", "description": "Sorts the result set. Example: SELECT * FROM table ORDER BY column ASC|DESC;"},
+    {"title": "JOIN", "description": "Combines rows from two or more tables. Example: SELECT * FROM table1 JOIN table2 ON table1.id = table2.id;"}
+  ],
+  "RStudio": [
+    {"title": "Assignment (<-)", "description": "Assigns values to variables. Example: x <- 5"},
+    {"title": "Print", "description": "Prints output to the console. Example: print(x)"}
+  ],
+  "Python": [
+    {"title": "def", "description": "Defines a function. Example: def my_function():"},
+    {"title": "for", "description": "For loop. Example: for i in range(10):"},
+    {"title": "if", "description": "Conditional statement. Example: if x > 0:"},
+    {"title": "import", "description": "Imports a module. Example: import os"},
+    {"title": "list comprehension", "description": "Compact way to create lists. Example: [x for x in range(5)]"}
+  ],
+  "SQL": [
+    {"title": "SELECT", "description": "Selects data from a database. Example: SELECT * FROM table;"},
+    {"title": "INSERT", "description": "Inserts new data. Example: INSERT INTO table (col) VALUES (val);"},
+    {"title": "UPDATE", "description": "Updates existing data. Example: UPDATE table SET col=val WHERE condition;"},
+    {"title": "DELETE", "description": "Deletes data. Example: DELETE FROM table WHERE condition;"}
+  ],
+  "R": [
+    {"title": "<-", "description": "Assignment operator. Example: x <- 5"},
+    {"title": "function", "description": "Defines a function. Example: myfun <- function(x) { x + 1 }"},
+    {"title": "if", "description": "Conditional statement. Example: if (x > 0) { ... }"}
+  ]
+} 
