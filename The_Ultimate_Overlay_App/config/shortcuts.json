@@ -1,20 +1,95 @@
 {
     "Notepad": [
-        {"shortcut": "Ctrl+S", "summary": "Save file", "description": "Save file"},
-        {"shortcut": "Ctrl+O", "summary": "Open file", "description": "Open file"}
+        {"shortcut": "Ctrl+S", "summary": "Save file", "description": "Save file"}
+    ],
+    "Notepad++": [
+        {"shortcut": "Ctrl+N", "summary": "New file", "description": "Create a new file."}
+    ],
+    "VSCode": [
+        {"shortcut": "Ctrl+P", "summary": "Quick open", "description": "Quickly open files by name."}
+    ],
+    "PyCharm": [
+        {"shortcut": "Shift+Shift", "summary": "Search everywhere", "description": "Search across files, classes, symbols, and actions."}
+    ],
+    "Jupyter": [
+        {"shortcut": "Shift+Enter", "summary": "Run cell", "description": "Run the current cell."}
+    ],
+    "Spyder": [
+        {"shortcut": "F5", "summary": "Run script", "description": "Run the current script."}
+    ],
+    "Sublime Text": [
+        {"shortcut": "Ctrl+D", "summary": "Select word", "description": "Select the next occurrence of the current word."}
+    ],
+    "Atom": [
+        {"shortcut": "Ctrl+Shift+P", "summary": "Command palette", "description": "Open the command palette."}
+    ],
+    "WebStorm": [
+        {"shortcut": "Alt+F12", "summary": "Open terminal", "description": "Open the integrated terminal."}
+    ],
+    "IntelliJ": [
+        {"shortcut": "Ctrl+E", "summary": "Recent files", "description": "View recent files."}
+    ],
+    "Eclipse": [
+        {"shortcut": "Ctrl+Shift+R", "summary": "Open resource", "description": "Open a resource by name."}
+    ],
+    "Visual Studio": [
+        {"shortcut": "Ctrl+K, Ctrl+C", "summary": "Comment selection", "description": "Comment out the selected lines."}
+    ],
+    "Android Studio": [
+        {"shortcut": "Ctrl+Space", "summary": "Basic code completion", "description": "Show code completion suggestions."}
     ],
     "Cursor": [
-        {"shortcut": "Ctrl+Left", "summary": "Word left", "description": "Move cursor left by word"},
-        {"shortcut": "Ctrl+Right", "summary": "Word right", "description": "Move cursor right by word"},
-        {"shortcut": "Home", "summary": "Line start", "description": "Move cursor to start of line"},
-        {"shortcut": "End", "summary": "Line end", "description": "Move cursor to end of line"}
+        {"shortcut": "Ctrl+Left", "summary": "Word left", "description": "Move cursor left by word"}
     ],
     "RStudio": [
-        {"shortcut": "Ctrl+L", "summary": "Clear console", "description": "Open console"},
-        {"shortcut": "Ctrl+Shift+L", "summary": "Open terminal", "description": "Open terminal"}
+        {"shortcut": "Ctrl+L", "summary": "Clear console", "description": "Open console"}
     ],
     "SQL Server Management Studio": [
-        {"shortcut": "Ctrl+L", "summary": "Clear console", "description": "Open console"},
-        {"shortcut": "Ctrl+Shift+L", "summary": "Open terminal", "description": "Open terminal"}
+        {"shortcut": "Ctrl+L", "summary": "Clear console", "description": "Open console"}
+    ],
+    "Web": [
+        {"shortcut": "Ctrl+T", "summary": "New tab", "description": "Open a new browser tab."}
+    ],
+    "Chrome": [
+        {"shortcut": "Ctrl+Shift+N", "summary": "New incognito window", "description": "Open a new incognito window."}
+    ],
+    "Firefox": [
+        {"shortcut": "Ctrl+Shift+P", "summary": "New private window", "description": "Open a new private window."}
+    ],
+    "Edge": [
+        {"shortcut": "Ctrl+Shift+N", "summary": "New InPrivate window", "description": "Open a new InPrivate window."}
+    ],
+    "Internet Explorer": [
+        {"shortcut": "Ctrl+Shift+P", "summary": "New InPrivate window", "description": "Open a new InPrivate window."}
+    ],
+    "Excel": [
+        {"shortcut": "Ctrl+Arrow", "summary": "Jump edge", "description": "Jump to the edge of data region."}
+    ],
+    "Word": [
+        {"shortcut": "Ctrl+B", "summary": "Bold text", "description": "Make text bold."}
+    ],
+    "PowerPoint": [
+        {"shortcut": "Ctrl+M", "summary": "New slide", "description": "Insert a new slide."}
+    ],
+    "Outlook": [
+        {"shortcut": "Ctrl+N", "summary": "New email", "description": "Create a new email message."}
+    ],
+    "OneNote": [
+        {"shortcut": "Ctrl+N", "summary": "New page", "description": "Create a new page in the notebook."}
+    ],
+    "Teams": [
+        {"shortcut": "Ctrl+Shift+M", "summary": "Mute mic", "description": "Mute or unmute your microphone."}
+    ],
+    "Text": [
+        {"shortcut": "Ctrl+F", "summary": "Find text", "description": "Find text in the document."}
+    ],
+    "Windows Terminal": [
+        {"shortcut": "Ctrl+Shift+T", "summary": "New tab", "description": "Open a new terminal tab."}
+    ],
+    "cmd.exe": [
+        {"shortcut": "F7", "summary": "Command history", "description": "Show command history window."}
+    ],
+    "PowerShell": [
+        {"shortcut": "Ctrl+R", "summary": "Reverse search", "description": "Search command history backwards."}
     ]
 } 

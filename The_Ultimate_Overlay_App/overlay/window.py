@@ -4,7 +4,7 @@ Provides a resizable, scrollable, context-aware overlay with Home/Read buttons.
 """
 from PyQt6.QtWidgets import QApplication, QLabel, QWidget, QVBoxLayout, QScrollArea, QPushButton, QHBoxLayout, QToolTip, QSizePolicy, QLineEdit, QToolButton
 from PyQt6.QtCore import Qt, QPoint, QTimer, pyqtSignal
-from PyQt6.QtGui import QIcon, QGuiApplication
+from PyQt6.QtGui import QIcon, QGuiApplication, QCursor
 import sys
 from context.detector import get_active_window_title
 from context.shortcuts import get_shortcuts_for_app
@@ -13,6 +13,7 @@ import os
 import threading
 import keyboard
 import webbrowser
+import re
 
 KNOWLEDGE_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config', 'knowledge.json')
 FAVORITES_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config', 'favorites.json')
@@ -104,14 +105,28 @@ class OverlayRowWidget(QWidget):
         self.setLayout(layout)
         self._tooltip = tooltip
         self._default_bg = self.palette().color(self.backgroundRole())
-    def enterEvent(self, event):
-        QToolTip.showText(self.mapToGlobal(self.rect().center()), self._tooltip, self)
-        self.setStyleSheet("background: #3a7bd5; border-radius: 7px;")
-        super().enterEvent(event)
-    def leaveEvent(self, event):
-        QToolTip.hideText()
-        self.setStyleSheet("")
-        super().leaveEvent(event)
+        # Install event filter for robust highlight
+        self.installEventFilter(self)
+
+    def eventFilter(self, obj, event):
+        if obj is self:
+            if event.type() == event.Type.Enter:
+                # Only highlight if mouse is truly over the row, not a child
+                if self.rect().contains(self.mapFromGlobal(QCursor.pos())):
+                    QToolTip.showText(self.mapToGlobal(self.rect().center()), self._tooltip, self)
+                    self.setStyleSheet("background: #3a7bd5; border-radius: 7px;")
+            elif event.type() == event.Type.Leave:
+                QToolTip.hideText()
+                self.setStyleSheet("")
+        return super().eventFilter(obj, event)
+
+    def set_highlighted(self, highlighted: bool):
+        if highlighted:
+            QToolTip.showText(self.mapToGlobal(self.rect().center()), self._tooltip, self)
+            self.setStyleSheet("background: #3a7bd5; border-radius: 7px;")
+        else:
+            QToolTip.hideText()
+            self.setStyleSheet("")
 
 class OverlayWindow:
     def __init__(self):
@@ -213,41 +228,44 @@ class MovableOverlayWidget(QWidget):
         self.update_overlay()
         super().focusOutEvent(event)
 
-    def detect_language(self, window_title):
-        # Map file extensions to languages
+    def detect_language_by_extension(self, window_title):
         ext_to_lang = {
-            '.py': 'Python',
-            '.sql': 'SQL',
-            '.r': 'R',
-            '.ttl': 'Ttl',
-            '.sas': 'SAS',
-            '.ipynb': 'Python',
-        }
-        # Map known app names to languages
-        app_to_lang = {
-            'rstudio': 'R',
-            'sql server management studio': 'SQL',
-            'jupyter': 'Python',
-            'spyder': 'Python',
-            'pycharm': 'Python',
-            'vscode': 'Python',
+            '.py': 'Python', '.sql': 'SQL', '.r': 'R', '.ttl': 'Ttl', '.sas': 'SAS', '.ipynb': 'Python',
+            '.js': 'JavaScript', '.ts': 'TypeScript', '.c': 'C', '.cpp': 'C++', '.h': 'C/C++ Header', '.hpp': 'C++ Header',
+            '.java': 'Java', '.html': 'HTML', '.htm': 'HTML', '.css': 'CSS', '.md': 'Markdown', '.json': 'JSON',
+            '.xml': 'XML', '.yml': 'YAML', '.yaml': 'YAML', '.sh': 'Shell', '.bat': 'Batch', '.ps1': 'PowerShell',
         }
         if window_title:
             title_lower = window_title.lower()
-            # Check app name
-            for app, lang in app_to_lang.items():
-                if app in title_lower:
-                    return lang
-            # Check file extension
-            import re
-            match = re.search(r'\.[a-z0-9]+', window_title)
-            if match:
+            matches = list(re.finditer(r'\.[a-z0-9]+', title_lower))
+            for match in reversed(matches):
                 ext = match.group(0)
                 if ext in ext_to_lang:
                     return ext_to_lang[ext]
         return None
 
+    def detect_app_by_name(self, window_title):
+        app_to_lang = {
+            'rstudio': 'R', 'sql server management studio': 'SQL', 'jupyter': 'Python', 'spyder': 'Python',
+            'pycharm': 'Python', 'vscode': 'Python', 'visual studio code': 'Python', 'sublime text': 'Python',
+            'notepad++': 'Text', 'notepad': 'Text', 'atom': 'JavaScript', 'webstorm': 'JavaScript', 'intellij': 'Java',
+            'eclipse': 'Java', 'visual studio': 'C++', 'android studio': 'Java', 'markdown': 'Markdown',
+            'chrome': 'Web', 'firefox': 'Web', 'edge': 'Web', 'internet explorer': 'Web', 'excel': 'Excel',
+            'word': 'Word', 'powerpoint': 'PowerPoint', 'outlook': 'Outlook', 'onenote': 'OneNote', 'teams': 'Teams',
+            'windows terminal': 'Shell', 'cmd.exe': 'Shell', 'powershell': 'PowerShell',
+            'cursor': 'Python',
+        }
+        if window_title:
+            title_lower = window_title.lower()
+            for app, lang in app_to_lang.items():
+                if app in title_lower:
+                    return app
+        return None
+
     def update_overlay(self):
+        # Prevent refresh if mouse is inside overlay
+        if self.rect().contains(self.mapFromGlobal(QCursor.pos())):
+            return
         search_text = self.search_bar.text().strip().lower() if hasattr(self, 'search_bar') else ""
         # Get active window title, but preserve last real context if overlay is focused
         window_title = get_active_window_title()
@@ -260,9 +278,12 @@ class MovableOverlayWidget(QWidget):
                 self.last_real_window_title = window_title
         # Update context label
         context_str = window_title or "Unknown context"
-        language = self.detect_language(window_title)
+        language = self.detect_language_by_extension(window_title)
+        app_name = self.detect_app_by_name(window_title)
         if language:
             context_str = f"{context_str}<br><span style='color:#ffeebb;'>Language: <b>{language}</b></span>"
+        if app_name:
+            context_str = f"{context_str}<br><span style='color:#aeefff;'>App: <b>{app_name}</b></span>"
         self.context_label.setText(context_str)
         self.context_label.setTextFormat(Qt.TextFormat.RichText)
         print(f"[DEBUG] update_overlay called. ctrl_pressed={self.ctrl_pressed}, has_focus={self.has_focus}, block_updates={self.block_updates}, home_locked={self.home_locked}, window_title={window_title}")
@@ -300,7 +321,9 @@ class MovableOverlayWidget(QWidget):
                 self.content_layout.addWidget(row_widget)
             return
         if self.ctrl_pressed:
-            shortcuts = get_shortcuts_for_app(window_title)
+            # Shortcuts tab: use app name only
+            app_name = self.detect_app_by_name(window_title)
+            shortcuts = get_shortcuts_for_app(app_name)
             if shortcuts:
                 pinned = []
                 unpinned = []
@@ -322,7 +345,7 @@ class MovableOverlayWidget(QWidget):
                     is_fav = s['shortcut'] in self.favorites['shortcuts']
                     def make_copy_cb_shortcut(val=s['shortcut']):
                         return lambda: QGuiApplication.clipboard().setText(val)
-                    def make_doc_cb_shortcut(app=window_title, t=s['shortcut']):
+                    def make_doc_cb_shortcut(app=app_name, t=s['shortcut']):
                         return lambda: webbrowser.open(get_doc_url(app, t))
                     row_widget = OverlayRowWidget(
                         QLabel(f"<b>{s['shortcut']}</b>"),
@@ -338,7 +361,8 @@ class MovableOverlayWidget(QWidget):
                 row_widget = OverlayRowWidget(QLabel("No shortcuts found for this app."), QLabel(""), "", False, lambda checked, t=None: self.pin_shortcut(t), lambda: QGuiApplication.clipboard().setText(""), lambda: webbrowser.open(get_doc_url(language, None)))
                 self.content_layout.addWidget(row_widget)
         else:
-            language = self.detect_language(window_title)
+            # Knowledge tab: use file extension only
+            language = self.detect_language_by_extension(window_title)
             app_knowledge = []
             if language and language in self.knowledge:
                 app_knowledge = self.knowledge[language]

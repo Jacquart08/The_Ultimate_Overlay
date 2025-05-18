@@ -1,16 +1,4 @@
 {
-  "SQL Server Management Studio": [
-    {"title": "WHERE", "summary": "Filter rows", "description": "Filters records based on a condition.", "code": "SELECT * FROM table WHERE condition;"},
-    {"title": "LIKE", "summary": "Pattern match", "description": "Searches for a specified pattern in a column.", "code": "SELECT * FROM table WHERE column LIKE '%value%';"},
-    {"title": "CASE", "summary": "Conditional expr", "description": "Conditional expression.", "code": "SELECT column, CASE WHEN condition THEN result ELSE other END FROM table;"},
-    {"title": "GROUP BY", "summary": "Group rows", "description": "Groups rows that have the same values.", "code": "SELECT column, COUNT(*) FROM table GROUP BY column;"},
-    {"title": "ORDER BY", "summary": "Sort results", "description": "Sorts the result set.", "code": "SELECT * FROM table ORDER BY column ASC|DESC;"},
-    {"title": "JOIN", "summary": "Combine tables", "description": "Combines rows from two or more tables.", "code": "SELECT * FROM table1 JOIN table2 ON table1.id = table2.id;"}
-  ],
-  "RStudio": [
-    {"title": "Assignment (<-)", "summary": "Assign value", "description": "Assigns values to variables.", "code": "x <- 5"},
-    {"title": "Print", "summary": "Show output", "description": "Prints output to the console.", "code": "print(x)"}
-  ],
   "Python": [
     {"title": "def", "summary": "Define func", "description": "Defines a function.", "code": "def my_function():"},
     {"title": "for", "summary": "Loop range", "description": "For loop.", "code": "for i in range(10):"},
@@ -22,11 +10,90 @@
     {"title": "SELECT", "summary": "Get data", "description": "Selects data from a database.", "code": "SELECT * FROM table;"},
     {"title": "INSERT", "summary": "Add row", "description": "Inserts new data.", "code": "INSERT INTO table (col) VALUES (val);"},
     {"title": "UPDATE", "summary": "Change row", "description": "Updates existing data.", "code": "UPDATE table SET col=val WHERE condition;"},
-    {"title": "DELETE", "summary": "Remove row", "description": "Deletes data.", "code": "DELETE FROM table WHERE condition;"}
+    {"title": "DELETE", "summary": "Remove row", "description": "Deletes data.", "code": "DELETE FROM table WHERE condition;"},
+    {"title": "WHERE", "summary": "Filter rows", "description": "Filters records based on a condition.", "code": "SELECT * FROM table WHERE condition;"},
+    {"title": "LIKE", "summary": "Pattern match", "description": "Searches for a specified pattern in a column.", "code": "SELECT * FROM table WHERE column LIKE '%value%';"},
+    {"title": "CASE", "summary": "Conditional expr", "description": "Conditional expression.", "code": "SELECT column, CASE WHEN condition THEN result ELSE other END FROM table;"},
+    {"title": "GROUP BY", "summary": "Group rows", "description": "Groups rows that have the same values.", "code": "SELECT column, COUNT(*) FROM table GROUP BY column;"},
+    {"title": "ORDER BY", "summary": "Sort results", "description": "Sorts the result set.", "code": "SELECT * FROM table ORDER BY column ASC|DESC;"},
+    {"title": "JOIN", "summary": "Combine tables", "description": "Combines rows from two or more tables.", "code": "SELECT * FROM table1 JOIN table2 ON table1.id = table2.id;"}
   ],
   "R": [
     {"title": "<-", "summary": "Assign value", "description": "Assignment operator.", "code": "x <- 5"},
     {"title": "function", "summary": "Define func", "description": "Defines a function.", "code": "myfun <- function(x) { x + 1 }"},
-    {"title": "if", "summary": "Condition", "description": "Conditional statement.", "code": "if (x > 0) { ... }"}
-  ]
+    {"title": "if", "summary": "Condition", "description": "Conditional statement.", "code": "if (x > 0) { ... }"},
+    {"title": "Assignment (<-)", "summary": "Assign value", "description": "Assigns values to variables.", "code": "x <- 5"},
+    {"title": "Print", "summary": "Show output", "description": "Prints output to the console.", "code": "print(x)"}
+  ],
+  "JavaScript": [
+    {"title": "function", "summary": "Define func", "description": "Defines a function.", "code": "function myFunction() {\n  // code\n}"},
+    {"title": "let", "summary": "Block var", "description": "Declares a block-scoped variable.", "code": "let x = 5;"},
+    {"title": "const", "summary": "Const var", "description": "Declares a block-scoped constant.", "code": "const PI = 3.14;"},
+    {"title": "for", "summary": "Loop range", "description": "For loop.", "code": "for (let i = 0; i < 10; i++) {\n  // code\n}"},
+    {"title": "if", "summary": "Condition", "description": "Conditional statement.", "code": "if (x > 0) {\n  // code\n}"}
+  ],
+  "TypeScript": [
+    {"title": "interface", "summary": "Type contract", "description": "Defines a TypeScript interface.", "code": "interface Person {\n  name: string;\n  age: number;\n}"},
+    {"title": "type", "summary": "Alias type", "description": "Defines a type alias.", "code": "type ID = string | number;"},
+    {"title": "enum", "summary": "Enum type", "description": "Defines an enum.", "code": "enum Color {\n  Red, Green, Blue\n}"}
+  ],
+  "C": [
+    {"title": "#include", "summary": "Import lib", "description": "Includes a standard or user-defined header file.", "code": "#include <stdio.h>"},
+    {"title": "int main", "summary": "Entry point", "description": "Main function entry point.", "code": "int main() {\n  return 0;\n}"},
+    {"title": "printf", "summary": "Print text", "description": "Prints formatted output.", "code": "printf(\"Hello, World!\\n\");"}
+  ],
+  "C++": [
+    {"title": "#include", "summary": "Import lib", "description": "Includes a standard or user-defined header file.", "code": "#include <iostream>"},
+    {"title": "std::cout", "summary": "Print text", "description": "Prints output to the console.", "code": "std::cout << \"Hello, World!\" << std::endl;"},
+    {"title": "int main", "summary": "Entry point", "description": "Main function entry point.", "code": "int main() {\n  return 0;\n}"}
+  ],
+  "Java": [
+    {"title": "class", "summary": "Define class", "description": "Defines a class.", "code": "public class MyClass {\n  // fields\n}"},
+    {"title": "public static void main", "summary": "Entry point", "description": "Main method entry point.", "code": "public static void main(String[] args) {\n  // code\n}"},
+    {"title": "System.out.println", "summary": "Print text", "description": "Prints output to the console.", "code": "System.out.println(\"Hello, World!\");"}
+  ],
+  "HTML": [
+    {"title": "<!DOCTYPE>", "summary": "Doc type", "description": "Defines the document type.", "code": "<!DOCTYPE html>"},
+    {"title": "<a>", "summary": "Link", "description": "Defines a hyperlink.", "code": "<a href=\"url\">text</a>"},
+    {"title": "<div>", "summary": "Container", "description": "Defines a division or section.", "code": "<div>content</div>"}
+  ],
+  "CSS": [
+    {"title": "color", "summary": "Text color", "description": "Sets the color of text.", "code": "color: red;"},
+    {"title": "margin", "summary": "Spacing", "description": "Sets the margin area.", "code": "margin: 10px;"},
+    {"title": "display", "summary": "Box type", "description": "Specifies the display behavior.", "code": "display: flex;"}
+  ],
+  "Markdown": [
+    {"title": "# Heading", "summary": "Header", "description": "Creates a top-level heading.", "code": "# Heading 1"},
+    {"title": "**bold**", "summary": "Bold text", "description": "Makes text bold.", "code": "**bold**"},
+    {"title": "*italic*", "summary": "Italic text", "description": "Makes text italic.", "code": "*italic*"},
+    {"title": "[link](url)", "summary": "Hyperlink", "description": "Creates a hyperlink.", "code": "[Google](https://google.com)"}
+  ],
+  "JSON": [
+    {"title": "Object", "summary": "Key-value pairs", "description": "A JSON object is a collection of key/value pairs.", "code": "{\"key\": \"value\"}"}
+  ],
+  "YAML": [
+    {"title": "Mapping", "summary": "Key-value pairs", "description": "A YAML mapping is a set of key-value pairs.", "code": "key: value"}
+  ],
+  "Shell": [
+    {"title": "echo", "summary": "Print text", "description": "Prints text to the terminal.", "code": "echo 'Hello, World!'"}
+  ],
+  "Batch": [
+    {"title": "ECHO", "summary": "Print text", "description": "Prints text in batch scripts.", "code": "ECHO Hello, World!"}
+  ],
+  "PowerShell": [
+    {"title": "Write-Output", "summary": "Print text", "description": "Prints text to the output.", "code": "Write-Output 'Hello, World!'"}
+  ],
+  "XML": [
+    {"title": "<tag>", "summary": "Element", "description": "Defines an XML element.", "code": "<note>...</note>"}
+  ],
+  "Ttl": [
+    {"title": "@prefix", "summary": "Namespace prefix", "description": "Defines a namespace prefix in Turtle.", "code": "@prefix ex: <http://example.com/> ."}
+  ],
+  "SAS": [
+    {"title": "DATA step", "summary": "Create dataset", "description": "Begins a data step in SAS.", "code": "DATA mydata; SET olddata; RUN;"}
+  ],
+  "C/C++ Header": [
+    {"title": "#define", "summary": "Macro", "description": "Defines a macro in C/C++ header.", "code": "#define PI 3.14"}
+  ],
+  "C++ Header": []
 } 
