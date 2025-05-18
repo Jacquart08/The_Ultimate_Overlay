@@ -6,7 +6,7 @@ A lightweight, context-aware overlay application that displays shortcuts, syntax
 
 When runing the App, the overlay will show up somewhere. Just resize it and put it anywhere you want on the screen.
 You then have 2 button Home will be you dashboard (WIP), and Read. When pressing the read button you will activate the awareness mode. This mode will automatically detect the application you are using and, if applicable, the file extension you are looking at (It only works when the window is curently focused by windows). 
-Now regarding the app you are on, or the file extension it will provide you by default some knowledge about the programming language you are on (and it change automatically when switching from one file to another). If not applicable a custonizable dashboard will appear (WIP).
+Now regarding the app you are on, or the file extension it will provide you by default some knowledge about the programming language you are on (and it change automatically when switching from one file to another). If not applicable a custonizable dashboard will appear (WIP). It even detect the language in your web browser if the extension is in the URL.
 Now you can also press ctrl and it will then display some shortcuts based on the app you are on (it no longer read the file extension).
 You also have at your disposal a search bar in order for you to filter the results (when the knwledge base will be big enough).
 
