@@ -8,6 +8,14 @@ A lightweight, context-aware overlay application that displays shortcuts, syntax
 - Displays relevant shortcuts or syntax based on context
 - Press Ctrl to switch between the function/knowledge tab (default) and the shortcut tab (while holding Ctrl)
 - Manual Home/Read buttons to lock the overlay to the home page or return to context-aware mode
+- **Compact, modern overlay UI** (shows only names, details on hover)
+- **Rich tooltips**: Mouse over any item to see a description and (if available) a code example in a code block
+- **Search/filter bar**: Quickly filter functions/shortcuts by name or summary
+- **Favorites/pinning**: Star your favorite items to keep them at the top (persisted in `config/favorites.json`)
+- **Copy to clipboard**: Instantly copy code or shortcut with one click
+- **Quick doc links**: Open official documentation for any function/shortcut with one click (web globe icon)
+- **Context display**: Shows current app/file and detected language at the top, always visible
+- **Highlight on hover**: Rows are visually highlighted for clarity
 - Easy to extend via simple config files structure
 
 ## Project Structure
@@ -58,10 +66,35 @@ UltimateOverlay/
   - Release Ctrl to show basic knowledge for the detected programming language (by file extension or app name).
 - **Focus:**
   - The overlay will not update with app/language info while locked on the home page.
+- **Context Bar:**
+  - The top of the overlay always shows the current app/file and detected language, even when the overlay is focused.
+- **Search/Filter:**
+  - Use the search bar to filter the list in real time by name or summary.
+- **Favorites/Pinning:**
+  - Click the star icon to pin/unpin an item. Favorites always appear at the top and are saved in `config/favorites.json`.
+- **Copy to Clipboard:**
+  - Click the green copy icon to copy the code (for knowledge) or shortcut (for shortcuts) to the clipboard.
+- **Quick Documentation:**
+  - Click the blue globe icon to open the official documentation for the function/shortcut in your browser.
+- **Highlight on Hover:**
+  - Rows are visually highlighted when hovered for better focus.
 
 ## Configuration
 - Edit `config/shortcuts.json` to add or modify shortcuts for different applications.
 - Edit `config/knowledge.json` to add or modify basic knowledge for different apps or programming languages (e.g., Python, SQL, R).
+- **Favorites:**
+  - Your pinned items are saved in `config/favorites.json` and persist between sessions.
+- **New format for knowledge.json:**
+  - Each entry should have a `title`, a `summary`, a `description`, and (optionally) a `code` field. Example:
+    ```json
+    {
+      "title": "for",
+      "summary": "Loop range",
+      "description": "For loop.",
+      "code": "for i in range(10):"
+    }
+    ```
+  - The tooltip will show the description and, if present, the code block.
 
 ## License
 This project is licensed under the Creative Commons Attribution-NonCommercial 4.0 International License (CC BY-NC 4.0).

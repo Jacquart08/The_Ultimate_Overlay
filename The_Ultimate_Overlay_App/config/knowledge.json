@@ -1,32 +1,32 @@
 {
   "SQL Server Management Studio": [
-    {"title": "WHERE", "description": "Filters records based on a condition. Example: SELECT * FROM table WHERE condition;"},
-    {"title": "LIKE", "description": "Searches for a specified pattern in a column. Example: SELECT * FROM table WHERE column LIKE '%value%';"},
-    {"title": "CASE", "description": "Conditional expression. Example: SELECT column, CASE WHEN condition THEN result ELSE other END FROM table;"},
-    {"title": "GROUP BY", "description": "Groups rows that have the same values. Example: SELECT column, COUNT(*) FROM table GROUP BY column;"},
-    {"title": "ORDER BY", "description": "Sorts the result set. Example: SELECT * FROM table ORDER BY column ASC|DESC;"},
-    {"title": "JOIN", "description": "Combines rows from two or more tables. Example: SELECT * FROM table1 JOIN table2 ON table1.id = table2.id;"}
+    {"title": "WHERE", "summary": "Filter rows", "description": "Filters records based on a condition.", "code": "SELECT * FROM table WHERE condition;"},
+    {"title": "LIKE", "summary": "Pattern match", "description": "Searches for a specified pattern in a column.", "code": "SELECT * FROM table WHERE column LIKE '%value%';"},
+    {"title": "CASE", "summary": "Conditional expr", "description": "Conditional expression.", "code": "SELECT column, CASE WHEN condition THEN result ELSE other END FROM table;"},
+    {"title": "GROUP BY", "summary": "Group rows", "description": "Groups rows that have the same values.", "code": "SELECT column, COUNT(*) FROM table GROUP BY column;"},
+    {"title": "ORDER BY", "summary": "Sort results", "description": "Sorts the result set.", "code": "SELECT * FROM table ORDER BY column ASC|DESC;"},
+    {"title": "JOIN", "summary": "Combine tables", "description": "Combines rows from two or more tables.", "code": "SELECT * FROM table1 JOIN table2 ON table1.id = table2.id;"}
   ],
   "RStudio": [
-    {"title": "Assignment (<-)", "description": "Assigns values to variables. Example: x <- 5"},
-    {"title": "Print", "description": "Prints output to the console. Example: print(x)"}
+    {"title": "Assignment (<-)", "summary": "Assign value", "description": "Assigns values to variables.", "code": "x <- 5"},
+    {"title": "Print", "summary": "Show output", "description": "Prints output to the console.", "code": "print(x)"}
   ],
   "Python": [
-    {"title": "def", "description": "Defines a function. Example: def my_function():"},
-    {"title": "for", "description": "For loop. Example: for i in range(10):"},
-    {"title": "if", "description": "Conditional statement. Example: if x > 0:"},
-    {"title": "import", "description": "Imports a module. Example: import os"},
-    {"title": "list comprehension", "description": "Compact way to create lists. Example: [x for x in range(5)]"}
+    {"title": "def", "summary": "Define func", "description": "Defines a function.", "code": "def my_function():"},
+    {"title": "for", "summary": "Loop range", "description": "For loop.", "code": "for i in range(10):"},
+    {"title": "if", "summary": "Condition", "description": "Conditional statement.", "code": "if x > 0:"},
+    {"title": "import", "summary": "Import module", "description": "Imports a module.", "code": "import os"},
+    {"title": "list comprehension", "summary": "Quick list", "description": "Compact way to create lists.", "code": "[x for x in range(5)]"}
   ],
   "SQL": [
-    {"title": "SELECT", "description": "Selects data from a database. Example: SELECT * FROM table;"},
-    {"title": "INSERT", "description": "Inserts new data. Example: INSERT INTO table (col) VALUES (val);"},
-    {"title": "UPDATE", "description": "Updates existing data. Example: UPDATE table SET col=val WHERE condition;"},
-    {"title": "DELETE", "description": "Deletes data. Example: DELETE FROM table WHERE condition;"}
+    {"title": "SELECT", "summary": "Get data", "description": "Selects data from a database.", "code": "SELECT * FROM table;"},
+    {"title": "INSERT", "summary": "Add row", "description": "Inserts new data.", "code": "INSERT INTO table (col) VALUES (val);"},
+    {"title": "UPDATE", "summary": "Change row", "description": "Updates existing data.", "code": "UPDATE table SET col=val WHERE condition;"},
+    {"title": "DELETE", "summary": "Remove row", "description": "Deletes data.", "code": "DELETE FROM table WHERE condition;"}
   ],
   "R": [
-    {"title": "<-", "description": "Assignment operator. Example: x <- 5"},
-    {"title": "function", "description": "Defines a function. Example: myfun <- function(x) { x + 1 }"},
-    {"title": "if", "description": "Conditional statement. Example: if (x > 0) { ... }"}
+    {"title": "<-", "summary": "Assign value", "description": "Assignment operator.", "code": "x <- 5"},
+    {"title": "function", "summary": "Define func", "description": "Defines a function.", "code": "myfun <- function(x) { x + 1 }"},
+    {"title": "if", "summary": "Condition", "description": "Conditional statement.", "code": "if (x > 0) { ... }"}
   ]
 } 
