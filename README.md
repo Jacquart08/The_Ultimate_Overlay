@@ -33,8 +33,7 @@ UltimateOverlay/
 ├── main.py                # Entry point, starts the overlay
 ├── overlay/               # Overlay window and UI logic
 │   ├── __init__.py
-│   ├── window.py          # Overlay window class
-│   └── controller.py      # Handles UI updates, context switching
+│   └── window.py          # Main overlay window class and logic (edit this file for UI changes)
 │
 ├── context/               # Context detection and shortcut logic
 │   ├── __init__.py
@@ -53,6 +52,10 @@ UltimateOverlay/
 ├── requirements.txt       # Python dependencies
 └── README.md              # Project overview and setup
 ```
+
+> **Note:**  
+> All overlay UI and logic is now in `overlay/window.py`.  
+> The old `window.py` at the top level has been removed to avoid confusion.
 
 ## Setup
 1. Install dependencies:

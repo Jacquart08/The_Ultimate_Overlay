@@ -1,95 +1,172 @@
 {
     "Notepad": [
-        {"shortcut": "Ctrl+S", "summary": "Save file", "description": "Save file"}
+        {"shortcut": "Ctrl+S", "summary": "Save file", "description": "Save file"},
+        {"shortcut": "Ctrl+O", "summary": "Open file", "description": "Open an existing file."},
+        {"shortcut": "Ctrl+N", "summary": "New file", "description": "Create a new file."},
+        {"shortcut": "Ctrl+F", "summary": "Find", "description": "Find text in the document."}
     ],
     "Notepad++": [
-        {"shortcut": "Ctrl+N", "summary": "New file", "description": "Create a new file."}
+        {"shortcut": "Ctrl+N", "summary": "New file", "description": "Create a new file."},
+        {"shortcut": "Ctrl+Shift+S", "summary": "Save as", "description": "Save file as a new file."},
+        {"shortcut": "Ctrl+Tab", "summary": "Next tab", "description": "Switch to the next tab."},
+        {"shortcut": "Ctrl+W", "summary": "Close tab", "description": "Close the current tab."}
     ],
     "VSCode": [
-        {"shortcut": "Ctrl+P", "summary": "Quick open", "description": "Quickly open files by name."}
+        {"shortcut": "Ctrl+P", "summary": "Quick open", "description": "Quickly open files by name."},
+        {"shortcut": "Ctrl+Shift+P", "summary": "Command palette", "description": "Open the command palette."},
+        {"shortcut": "Ctrl+`", "summary": "Toggle terminal", "description": "Show or hide the integrated terminal."},
+        {"shortcut": "Ctrl+B", "summary": "Toggle sidebar", "description": "Show or hide the sidebar."},
+        {"shortcut": "Ctrl+Shift+O", "summary": "Go to symbol", "description": "Go to a symbol in the file."}
     ],
     "PyCharm": [
-        {"shortcut": "Shift+Shift", "summary": "Search everywhere", "description": "Search across files, classes, symbols, and actions."}
+        {"shortcut": "Shift+Shift", "summary": "Search everywhere", "description": "Search across files, classes, symbols, and actions."},
+        {"shortcut": "Ctrl+E", "summary": "Recent files", "description": "Show recent files."},
+        {"shortcut": "Ctrl+Shift+A", "summary": "Find action", "description": "Find and run any action."},
+        {"shortcut": "Alt+Enter", "summary": "Show intention actions", "description": "Show intention actions and quick-fixes."},
+        {"shortcut": "Ctrl+Alt+L", "summary": "Reformat code", "description": "Reformat the code in the current file."}
     ],
     "Jupyter": [
-        {"shortcut": "Shift+Enter", "summary": "Run cell", "description": "Run the current cell."}
+        {"shortcut": "Shift+Enter", "summary": "Run cell", "description": "Run the current cell."},
+        {"shortcut": "Ctrl+Enter", "summary": "Run cell in place", "description": "Run the current cell and stay in it."},
+        {"shortcut": "A", "summary": "Insert cell above", "description": "Insert a new cell above."},
+        {"shortcut": "B", "summary": "Insert cell below", "description": "Insert a new cell below."}
     ],
     "Spyder": [
-        {"shortcut": "F5", "summary": "Run script", "description": "Run the current script."}
+        {"shortcut": "F5", "summary": "Run script", "description": "Run the current script."},
+        {"shortcut": "Ctrl+1", "summary": "Comment line", "description": "Comment or uncomment the current line."},
+        {"shortcut": "Ctrl+Shift+E", "summary": "Variable explorer", "description": "Open the variable explorer."}
     ],
     "Sublime Text": [
-        {"shortcut": "Ctrl+D", "summary": "Select word", "description": "Select the next occurrence of the current word."}
+        {"shortcut": "Ctrl+D", "summary": "Select word", "description": "Select the next occurrence of the current word."},
+        {"shortcut": "Ctrl+L", "summary": "Select line", "description": "Select the current line."},
+        {"shortcut": "Ctrl+Shift+K", "summary": "Delete line", "description": "Delete the current line."}
     ],
     "Atom": [
-        {"shortcut": "Ctrl+Shift+P", "summary": "Command palette", "description": "Open the command palette."}
+        {"shortcut": "Ctrl+Shift+P", "summary": "Command palette", "description": "Open the command palette."},
+        {"shortcut": "Ctrl+T", "summary": "Fuzzy finder", "description": "Open the fuzzy finder to quickly open files."}
     ],
     "WebStorm": [
-        {"shortcut": "Alt+F12", "summary": "Open terminal", "description": "Open the integrated terminal."}
+        {"shortcut": "Alt+F12", "summary": "Open terminal", "description": "Open the integrated terminal."},
+        {"shortcut": "Ctrl+E", "summary": "Recent files", "description": "Show recent files."}
     ],
     "IntelliJ": [
-        {"shortcut": "Ctrl+E", "summary": "Recent files", "description": "View recent files."}
+        {"shortcut": "Ctrl+E", "summary": "Recent files", "description": "View recent files."},
+        {"shortcut": "Ctrl+Shift+A", "summary": "Find action", "description": "Find and run any action."}
     ],
     "Eclipse": [
-        {"shortcut": "Ctrl+Shift+R", "summary": "Open resource", "description": "Open a resource by name."}
+        {"shortcut": "Ctrl+Shift+R", "summary": "Open resource", "description": "Open a resource by name."},
+        {"shortcut": "Ctrl+F11", "summary": "Run", "description": "Run the current project."}
     ],
     "Visual Studio": [
-        {"shortcut": "Ctrl+K, Ctrl+C", "summary": "Comment selection", "description": "Comment out the selected lines."}
+        {"shortcut": "Ctrl+K, Ctrl+C", "summary": "Comment selection", "description": "Comment out the selected lines."},
+        {"shortcut": "F5", "summary": "Start debugging", "description": "Start debugging the application."},
+        {"shortcut": "Ctrl+Shift+B", "summary": "Build solution", "description": "Build the entire solution."}
     ],
     "Android Studio": [
-        {"shortcut": "Ctrl+Space", "summary": "Basic code completion", "description": "Show code completion suggestions."}
+        {"shortcut": "Ctrl+Space", "summary": "Basic code completion", "description": "Show code completion suggestions."},
+        {"shortcut": "Shift+F10", "summary": "Run app", "description": "Run the current app."}
     ],
     "Cursor": [
-        {"shortcut": "Ctrl+Left", "summary": "Word left", "description": "Move cursor left by word"}
+        {"shortcut": "Ctrl+Left", "summary": "Word left", "description": "Move cursor left by word"},
+        {"shortcut": "Ctrl+Right", "summary": "Word right", "description": "Move cursor right by word"},
+        {"shortcut": "Ctrl+Backspace", "summary": "Delete word left", "description": "Delete the word to the left of the cursor."}
     ],
     "RStudio": [
-        {"shortcut": "Ctrl+L", "summary": "Clear console", "description": "Open console"}
+        {"shortcut": "Ctrl+L", "summary": "Clear console", "description": "Clear the console window."},
+        {"shortcut": "Ctrl+Enter", "summary": "Run line", "description": "Run the current line or selection."}
     ],
     "SQL Server Management Studio": [
-        {"shortcut": "Ctrl+L", "summary": "Clear console", "description": "Open console"}
+        {"shortcut": "Ctrl+L", "summary": "Display estimated execution plan", "description": "Display the estimated execution plan for the query."},
+        {"shortcut": "F5", "summary": "Execute query", "description": "Execute the current query."}
     ],
     "Web": [
-        {"shortcut": "Ctrl+T", "summary": "New tab", "description": "Open a new browser tab."}
+        {"shortcut": "Ctrl+T", "summary": "New tab", "description": "Open a new browser tab."},
+        {"shortcut": "Ctrl+W", "summary": "Close tab", "description": "Close the current tab."},
+        {"shortcut": "Ctrl+Tab", "summary": "Next tab", "description": "Switch to the next tab."}
     ],
     "Chrome": [
-        {"shortcut": "Ctrl+Shift+N", "summary": "New incognito window", "description": "Open a new incognito window."}
+        {"shortcut": "Ctrl+Shift+N", "summary": "New incognito window", "description": "Open a new incognito window."},
+        {"shortcut": "Ctrl+T", "summary": "New tab", "description": "Open a new tab."},
+        {"shortcut": "Ctrl+W", "summary": "Close tab", "description": "Close the current tab."},
+        {"shortcut": "Ctrl+Tab", "summary": "Next tab", "description": "Switch to the next tab."},
+        {"shortcut": "Ctrl+Shift+T", "summary": "Reopen closed tab", "description": "Reopen the last closed tab."}
     ],
     "Firefox": [
-        {"shortcut": "Ctrl+Shift+P", "summary": "New private window", "description": "Open a new private window."}
+        {"shortcut": "Ctrl+Shift+P", "summary": "New private window", "description": "Open a new private window."},
+        {"shortcut": "Ctrl+T", "summary": "New tab", "description": "Open a new tab."},
+        {"shortcut": "Ctrl+W", "summary": "Close tab", "description": "Close the current tab."},
+        {"shortcut": "Ctrl+Tab", "summary": "Next tab", "description": "Switch to the next tab."},
+        {"shortcut": "Ctrl+Shift+T", "summary": "Reopen closed tab", "description": "Reopen the last closed tab."}
     ],
     "Edge": [
-        {"shortcut": "Ctrl+Shift+N", "summary": "New InPrivate window", "description": "Open a new InPrivate window."}
+        {"shortcut": "Ctrl+Shift+N", "summary": "New InPrivate window", "description": "Open a new InPrivate window."},
+        {"shortcut": "Ctrl+T", "summary": "New tab", "description": "Open a new tab."},
+        {"shortcut": "Ctrl+W", "summary": "Close tab", "description": "Close the current tab."},
+        {"shortcut": "Ctrl+Tab", "summary": "Next tab", "description": "Switch to the next tab."},
+        {"shortcut": "Ctrl+Shift+T", "summary": "Reopen closed tab", "description": "Reopen the last closed tab."}
     ],
     "Internet Explorer": [
-        {"shortcut": "Ctrl+Shift+P", "summary": "New InPrivate window", "description": "Open a new InPrivate window."}
+        {"shortcut": "Ctrl+Shift+P", "summary": "New InPrivate window", "description": "Open a new InPrivate window."},
+        {"shortcut": "Ctrl+T", "summary": "New tab", "description": "Open a new tab."},
+        {"shortcut": "Ctrl+W", "summary": "Close tab", "description": "Close the current tab."}
     ],
     "Excel": [
-        {"shortcut": "Ctrl+Arrow", "summary": "Jump edge", "description": "Jump to the edge of data region."}
+        {"shortcut": "Ctrl+Arrow", "summary": "Jump edge", "description": "Jump to the edge of data region."},
+        {"shortcut": "Ctrl+Shift+L", "summary": "Toggle filter", "description": "Add or remove filters."},
+        {"shortcut": "Ctrl+Space", "summary": "Select column", "description": "Select the entire column."},
+        {"shortcut": "Shift+Space", "summary": "Select row", "description": "Select the entire row."},
+        {"shortcut": "Ctrl+;", "summary": "Insert date", "description": "Insert the current date."}
     ],
     "Word": [
-        {"shortcut": "Ctrl+B", "summary": "Bold text", "description": "Make text bold."}
+        {"shortcut": "Ctrl+B", "summary": "Bold text", "description": "Make text bold."},
+        {"shortcut": "Ctrl+I", "summary": "Italic text", "description": "Italicize text."},
+        {"shortcut": "Ctrl+U", "summary": "Underline text", "description": "Underline text."},
+        {"shortcut": "Ctrl+N", "summary": "New document", "description": "Create a new document."},
+        {"shortcut": "Ctrl+S", "summary": "Save document", "description": "Save the current document."}
     ],
     "PowerPoint": [
-        {"shortcut": "Ctrl+M", "summary": "New slide", "description": "Insert a new slide."}
+        {"shortcut": "Ctrl+M", "summary": "New slide", "description": "Insert a new slide."},
+        {"shortcut": "F5", "summary": "Start slideshow", "description": "Start the slideshow from the beginning."},
+        {"shortcut": "Ctrl+D", "summary": "Duplicate slide", "description": "Duplicate the selected slide."}
     ],
     "Outlook": [
-        {"shortcut": "Ctrl+N", "summary": "New email", "description": "Create a new email message."}
+        {"shortcut": "Ctrl+N", "summary": "New email", "description": "Create a new email message."},
+        {"shortcut": "Ctrl+R", "summary": "Reply", "description": "Reply to the selected email."},
+        {"shortcut": "Ctrl+Enter", "summary": "Send email", "description": "Send the current email."}
     ],
     "OneNote": [
-        {"shortcut": "Ctrl+N", "summary": "New page", "description": "Create a new page in the notebook."}
+        {"shortcut": "Ctrl+N", "summary": "New page", "description": "Create a new page in the notebook."},
+        {"shortcut": "Ctrl+T", "summary": "New section", "description": "Create a new section."}
     ],
     "Teams": [
-        {"shortcut": "Ctrl+Shift+M", "summary": "Mute mic", "description": "Mute or unmute your microphone."}
+        {"shortcut": "Ctrl+Shift+M", "summary": "Mute mic", "description": "Mute or unmute your microphone."},
+        {"shortcut": "Ctrl+Shift+O", "summary": "Toggle camera", "description": "Turn your camera on or off."},
+        {"shortcut": "Ctrl+N", "summary": "New chat", "description": "Start a new chat."}
     ],
     "Text": [
-        {"shortcut": "Ctrl+F", "summary": "Find text", "description": "Find text in the document."}
+        {"shortcut": "Ctrl+F", "summary": "Find text", "description": "Find text in the document."},
+        {"shortcut": "Ctrl+C", "summary": "Copy", "description": "Copy selected text."},
+        {"shortcut": "Ctrl+V", "summary": "Paste", "description": "Paste from clipboard."}
     ],
     "Windows Terminal": [
-        {"shortcut": "Ctrl+Shift+T", "summary": "New tab", "description": "Open a new terminal tab."}
+        {"shortcut": "Ctrl+Shift+T", "summary": "New tab", "description": "Open a new terminal tab."},
+        {"shortcut": "Ctrl+Shift+W", "summary": "Close tab", "description": "Close the current tab."},
+        {"shortcut": "Ctrl+Shift+C", "summary": "Copy", "description": "Copy selected text."},
+        {"shortcut": "Ctrl+Shift+V", "summary": "Paste", "description": "Paste from clipboard."}
     ],
     "cmd.exe": [
-        {"shortcut": "F7", "summary": "Command history", "description": "Show command history window."}
+        {"shortcut": "F7", "summary": "Command history", "description": "Show command history window."},
+        {"shortcut": "Ctrl+C", "summary": "Cancel command", "description": "Cancel the current command."},
+        {"shortcut": "Ctrl+V", "summary": "Paste", "description": "Paste from clipboard."}
     ],
     "PowerShell": [
-        {"shortcut": "Ctrl+R", "summary": "Reverse search", "description": "Search command history backwards."}
+        {"shortcut": "Ctrl+R", "summary": "Reverse search", "description": "Search command history backwards."},
+        {"shortcut": "Ctrl+C", "summary": "Cancel command", "description": "Cancel the current command."},
+        {"shortcut": "Ctrl+V", "summary": "Paste", "description": "Paste from clipboard."}
+    ],
+    "Steam": [
+        {"shortcut": "Shift+Tab", "summary": "Overlay", "description": "Open the Steam overlay in-game."},
+        {"shortcut": "Ctrl+Tab", "summary": "Next tab", "description": "Switch to the next tab in Steam chat or browser."},
+        {"shortcut": "F12", "summary": "Screenshot", "description": "Take a screenshot."}
     ]
 } 

@@ -2,7 +2,7 @@
 UltimateOverlay - Overlay window logic.
 Provides a resizable, scrollable, context-aware overlay with Home/Read buttons.
 """
-from PyQt6.QtWidgets import QApplication, QLabel, QWidget, QVBoxLayout, QScrollArea, QPushButton, QHBoxLayout, QToolTip, QSizePolicy, QLineEdit, QToolButton
+from PyQt6.QtWidgets import QApplication, QLabel, QWidget, QVBoxLayout, QScrollArea, QPushButton, QHBoxLayout, QToolTip, QSizePolicy, QLineEdit, QToolButton, QListWidget
 from PyQt6.QtCore import Qt, QPoint, QTimer, pyqtSignal
 from PyQt6.QtGui import QIcon, QGuiApplication, QCursor
 import sys
@@ -253,7 +253,7 @@ class MovableOverlayWidget(QWidget):
             'chrome': 'Web', 'firefox': 'Web', 'edge': 'Web', 'internet explorer': 'Web', 'excel': 'Excel',
             'word': 'Word', 'powerpoint': 'PowerPoint', 'outlook': 'Outlook', 'onenote': 'OneNote', 'teams': 'Teams',
             'windows terminal': 'Shell', 'cmd.exe': 'Shell', 'powershell': 'PowerShell',
-            'cursor': 'Python',
+            'cursor': 'Python', 'steam': 'Steam',
         }
         if window_title:
             title_lower = window_title.lower()
@@ -262,21 +262,235 @@ class MovableOverlayWidget(QWidget):
                     return app
         return None
 
+    def create_app_home(self, app_name):
+        print(f"[DEBUG] create_app_home called with app_name: {app_name}")
+        home = QWidget()
+        layout = QVBoxLayout(home)
+        # Title
+        title = QLabel(f"{app_name} Home")
+        title.setStyleSheet("font-size: 16px; font-weight: bold; color: #ffffff;")
+        layout.addWidget(title)
+        # Add app-specific content
+        if 'excel' in app_name.lower():
+            print("[DEBUG] add_excel_home called")
+            self.add_excel_home(layout)
+        elif 'word' in app_name.lower():
+            print("[DEBUG] add_word_home called")
+            self.add_word_home(layout)
+        elif any(browser in app_name.lower() for browser in ['chrome', 'firefox', 'edge', 'internet explorer']):
+            print("[DEBUG] add_browser_home called")
+            self.add_browser_home(layout)
+        elif 'steam' in app_name.lower():
+            print("[DEBUG] add_steam_home called")
+            self.add_steam_home(layout)
+        else:
+            print("[DEBUG] add_generic_home called")
+            self.add_generic_home(layout, app_name)
+        return home
+
+    def add_excel_home(self, layout):
+        recent_label = QLabel("Recent Workbooks")
+        recent_label.setStyleSheet("color: #ffffff;")
+        layout.addWidget(recent_label)
+        workbooks_list = QListWidget()
+        workbooks_list.addItems(["Financial Report.xlsx", "Sales Data.xlsx", "Inventory.xlsx"])
+        workbooks_list.setStyleSheet("""
+            QListWidget {
+                background-color: #2d2d2d;
+                color: #ffffff;
+                border: 1px solid #3d3d3d;
+            }
+            QListWidget::item {
+                padding: 5px;
+            }
+            QListWidget::item:selected {
+                background-color: #3d3d3d;
+            }
+        """)
+        layout.addWidget(workbooks_list)
+        actions_label = QLabel("Quick Actions")
+        actions_label.setStyleSheet("color: #ffffff;")
+        layout.addWidget(actions_label)
+        actions_layout = QHBoxLayout()
+        new_btn = QPushButton("New Workbook")
+        template_btn = QPushButton("Templates")
+        recent_btn = QPushButton("Recent")
+        for btn in [new_btn, template_btn, recent_btn]:
+            btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #3d3d3d;
+                    color: #ffffff;
+                    border: none;
+                    padding: 5px 10px;
+                    border-radius: 3px;
+                }
+                QPushButton:hover {
+                    background-color: #4d4d4d;
+                }
+            """)
+            actions_layout.addWidget(btn)
+        layout.addLayout(actions_layout)
+
+    def add_word_home(self, layout):
+        recent_docs = QLabel("Recent Documents")
+        recent_docs.setStyleSheet("color: #ffffff;")
+        layout.addWidget(recent_docs)
+        docs_list = QListWidget()
+        docs_list.addItems(["Document1.docx", "Document2.docx", "Document3.docx"])
+        docs_list.setStyleSheet("""
+            QListWidget {
+                background-color: #2d2d2d;
+                color: #ffffff;
+                border: 1px solid #3d3d3d;
+            }
+            QListWidget::item {
+                padding: 5px;
+            }
+            QListWidget::item:selected {
+                background-color: #3d3d3d;
+            }
+        """)
+        layout.addWidget(docs_list)
+
+    def add_browser_home(self, layout):
+        bookmarks_label = QLabel("Quick Bookmarks")
+        bookmarks_label.setStyleSheet("color: #ffffff;")
+        layout.addWidget(bookmarks_label)
+        bookmarks_list = QListWidget()
+        bookmarks_list.addItems(["Google", "GitHub", "Stack Overflow", "YouTube"])
+        bookmarks_list.setStyleSheet("""
+            QListWidget {
+                background-color: #2d2d2d;
+                color: #ffffff;
+                border: 1px solid #3d3d3d;
+            }
+            QListWidget::item {
+                padding: 5px;
+            }
+            QListWidget::item:selected {
+                background-color: #3d3d3d;
+            }
+        """)
+        layout.addWidget(bookmarks_list)
+        actions_label = QLabel("Quick Actions")
+        actions_label.setStyleSheet("color: #ffffff;")
+        layout.addWidget(actions_label)
+        actions_layout = QHBoxLayout()
+        new_tab_btn = QPushButton("New Tab")
+        incognito_btn = QPushButton("Incognito")
+        history_btn = QPushButton("History")
+        for btn in [new_tab_btn, incognito_btn, history_btn]:
+            btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #3d3d3d;
+                    color: #ffffff;
+                    border: none;
+                    padding: 5px 10px;
+                    border-radius: 3px;
+                }
+                QPushButton:hover {
+                    background-color: #4d4d4d;
+                }
+            """)
+            actions_layout.addWidget(btn)
+        layout.addLayout(actions_layout)
+
+    def add_steam_home(self, layout):
+        recent_label = QLabel("Recent Games")
+        recent_label.setStyleSheet("color: #ffffff;")
+        layout.addWidget(recent_label)
+        games_list = QListWidget()
+        games_list.addItems(["Counter-Strike 2", "Dota 2", "Team Fortress 2"])
+        games_list.setStyleSheet("""
+            QListWidget {
+                background-color: #2d2d2d;
+                color: #ffffff;
+                border: 1px solid #3d3d3d;
+            }
+            QListWidget::item {
+                padding: 5px;
+            }
+            QListWidget::item:selected {
+                background-color: #3d3d3d;
+            }
+        """)
+        layout.addWidget(games_list)
+        actions_label = QLabel("Quick Actions")
+        actions_label.setStyleSheet("color: #ffffff;")
+        layout.addWidget(actions_label)
+        actions_layout = QHBoxLayout()
+        library_btn = QPushButton("Library")
+        store_btn = QPushButton("Store")
+        friends_btn = QPushButton("Friends")
+        for btn in [library_btn, store_btn, friends_btn]:
+            btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #3d3d3d;
+                    color: #ffffff;
+                    border: none;
+                    padding: 5px 10px;
+                    border-radius: 3px;
+                }
+                QPushButton:hover {
+                    background-color: #4d4d4d;
+                }
+            """)
+            actions_layout.addWidget(btn)
+        layout.addLayout(actions_layout)
+
+    def add_generic_home(self, layout, app_name):
+        recent_label = QLabel("Recent Items")
+        recent_label.setStyleSheet("color: #ffffff;")
+        layout.addWidget(recent_label)
+        items_list = QListWidget()
+        items_list.addItems([f"Item 1 - {app_name}", f"Item 2 - {app_name}", f"Item 3 - {app_name}"])
+        items_list.setStyleSheet("""
+            QListWidget {
+                background-color: #2d2d2d;
+                color: #ffffff;
+                border: 1px solid #3d3d3d;
+            }
+            QListWidget::item {
+                padding: 5px;
+            }
+            QListWidget::item:selected {
+                background-color: #3d3d3d;
+            }
+        """)
+        layout.addWidget(items_list)
+        actions_label = QLabel("Quick Actions")
+        actions_label.setStyleSheet("color: #ffffff;")
+        layout.addWidget(actions_label)
+        actions_layout = QHBoxLayout()
+        new_btn = QPushButton("New")
+        open_btn = QPushButton("Open")
+        settings_btn = QPushButton("Settings")
+        for btn in [new_btn, open_btn, settings_btn]:
+            btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #3d3d3d;
+                    color: #ffffff;
+                    border: none;
+                    padding: 5px 10px;
+                    border-radius: 3px;
+                }
+                QPushButton:hover {
+                    background-color: #4d4d4d;
+                }
+            """)
+            actions_layout.addWidget(btn)
+        layout.addLayout(actions_layout)
+
     def update_overlay(self):
-        # Prevent refresh if mouse is inside overlay
         if self.rect().contains(self.mapFromGlobal(QCursor.pos())):
             return
         search_text = self.search_bar.text().strip().lower() if hasattr(self, 'search_bar') else ""
-        # Get active window title, but preserve last real context if overlay is focused
         window_title = get_active_window_title()
         if window_title and window_title.strip() == self.windowTitle():
-            # Overlay is focused, use last real window title
             window_title = self.last_real_window_title
         else:
-            # Only update last_real_window_title if not overlay
             if window_title:
                 self.last_real_window_title = window_title
-        # Update context label
         context_str = window_title or "Unknown context"
         language = self.detect_language_by_extension(window_title)
         app_name = self.detect_app_by_name(window_title)
@@ -287,11 +501,101 @@ class MovableOverlayWidget(QWidget):
         self.context_label.setText(context_str)
         self.context_label.setTextFormat(Qt.TextFormat.RichText)
         print(f"[DEBUG] update_overlay called. ctrl_pressed={self.ctrl_pressed}, has_focus={self.has_focus}, block_updates={self.block_updates}, home_locked={self.home_locked}, window_title={window_title}")
-        # Clear previous content
         for i in reversed(range(self.content_layout.count())):
             widget = self.content_layout.itemAt(i).widget()
             if widget:
                 widget.setParent(None)
+        home_apps = [
+            'excel', 'microsoft excel', 'word', 'microsoft word', 'powerpoint', 'microsoft powerpoint',
+            'outlook', 'microsoft outlook', 'onenote', 'microsoft onenote', 'teams', 'microsoft teams',
+            'firefox', 'mozilla firefox', 'chrome', 'google chrome', 'edge', 'microsoft edge', 'internet explorer',
+            'steam', 'epic games', 'discord', 'spotify', 'windows terminal', 'cmd.exe', 'powershell', 'windows powershell'
+        ]
+        if self.ctrl_pressed:
+            # Shortcuts tab: use app name only
+            app_name = self.detect_app_by_name(window_title)
+            shortcuts = get_shortcuts_for_app(app_name)
+            if shortcuts:
+                pinned = []
+                unpinned = []
+                for s in shortcuts:
+                    if s['shortcut'] in self.favorites['shortcuts']:
+                        pinned.append(s)
+                    else:
+                        unpinned.append(s)
+                for s in pinned + unpinned:
+                    desc = s.get('description', '')
+                    code = s.get('code', None)
+                    summary = s.get('summary', '')
+                    tooltip = f"{desc}"
+                    if code:
+                        tooltip += f"<br><hr><pre>{code}</pre>"
+                    # Filter by search
+                    if search_text and not (s['shortcut'].lower().startswith(search_text) or (summary and summary.lower().startswith(search_text))):
+                        continue
+                    is_fav = s['shortcut'] in self.favorites['shortcuts']
+                    def make_copy_cb_shortcut(val=s['shortcut']):
+                        return lambda: QGuiApplication.clipboard().setText(val)
+                    def make_doc_cb_shortcut(app=app_name, t=s['shortcut']):
+                        return lambda: webbrowser.open(get_doc_url(app, t))
+                    row_widget = OverlayRowWidget(
+                        QLabel(f"<b>{s['shortcut']}</b>"),
+                        QLabel(summary),
+                        tooltip,
+                        is_fav,
+                        lambda checked, t=s['shortcut']: self.pin_shortcut(t),
+                        make_copy_cb_shortcut(),
+                        make_doc_cb_shortcut()
+                    )
+                    self.content_layout.addWidget(row_widget)
+            else:
+                row_widget = OverlayRowWidget(QLabel("No shortcuts found for this app."), QLabel(""), "", False, lambda checked, t=None: self.pin_shortcut(t), lambda: QGuiApplication.clipboard().setText(""), lambda: webbrowser.open(get_doc_url(language, None)))
+                self.content_layout.addWidget(row_widget)
+            return
+
+        if app_name and app_name in home_apps:
+            # Check if a language is detected and knowledge exists for it
+            if language and language in self.knowledge:
+                print(f"[DEBUG] Language {language} detected in home app, showing knowledge instead of home page.")
+                app_knowledge = self.knowledge[language]
+                pinned = []
+                unpinned = []
+                for k in app_knowledge:
+                    if k['title'] in self.favorites['knowledge']:
+                        pinned.append(k)
+                    else:
+                        unpinned.append(k)
+                for k in pinned + unpinned:
+                    desc = k.get('description', '')
+                    code = k.get('code', None)
+                    summary = k.get('summary', '')
+                    tooltip = f"{desc}"
+                    if code:
+                        tooltip += f"<br><hr><pre>{code}</pre>"
+                    # Filter by search
+                    if search_text and not (k['title'].lower().startswith(search_text) or (summary and summary.lower().startswith(search_text))):
+                        continue
+                    is_fav = k['title'] in self.favorites['knowledge']
+                    def make_copy_cb(c=code):
+                        return lambda: QGuiApplication.clipboard().setText(c or "")
+                    def make_doc_cb(lang=language, t=k['title']):
+                        return lambda: webbrowser.open(get_doc_url(lang, t))
+                    row_widget = OverlayRowWidget(
+                        QLabel(f"<b>{k['title']}</b>"),
+                        QLabel(summary),
+                        tooltip,
+                        is_fav,
+                        lambda checked, t=k['title']: self.pin_knowledge(t),
+                        make_copy_cb(),
+                        make_doc_cb()
+                    )
+                    self.content_layout.addWidget(row_widget)
+                return
+            # Otherwise, show the home page
+            print(f"[DEBUG] Showing home page for {app_name} (window title: {window_title})")
+            home_widget = self.create_app_home(window_title)
+            self.content_layout.addWidget(home_widget)
+            return
         if getattr(self, 'home_locked', False):
             menu_items = [
                 ("Settings", "Open the settings menu.", None, None),
