@@ -6,14 +6,16 @@ from PyQt6.QtWidgets import QApplication, QLabel, QWidget, QVBoxLayout, QScrollA
 from PyQt6.QtCore import Qt, QPoint, QTimer, pyqtSignal
 from PyQt6.QtGui import QIcon, QGuiApplication, QCursor
 import sys
-from context.detector import get_active_window_title
-from context.shortcuts import get_shortcuts_for_app
+from The_Ultimate_Overlay_App.context.detector import get_active_window_title
+from The_Ultimate_Overlay_App.context.shortcuts import get_shortcuts_for_app
+from The_Ultimate_Overlay_App.overlay.ai_widget import AIWidget
 import json
 import os
 import threading
 import keyboard
 import webbrowser
 import re
+import time
 
 KNOWLEDGE_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config', 'knowledge.json')
 FAVORITES_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config', 'favorites.json')
@@ -154,6 +156,11 @@ class MovableOverlayWidget(QWidget):
         self.last_real_window_title = None
 
         main_layout = QVBoxLayout()
+        
+        # Top row with Home/Read buttons and AI widget
+        top_layout = QHBoxLayout()
+        
+        # Left side: Home/Read buttons
         button_layout = QHBoxLayout()
         self.home_button = QPushButton("Home")
         self.home_button.clicked.connect(self.lock_home)
@@ -161,7 +168,15 @@ class MovableOverlayWidget(QWidget):
         self.read_button.clicked.connect(self.unlock_home)
         button_layout.addWidget(self.home_button)
         button_layout.addWidget(self.read_button)
-        main_layout.addLayout(button_layout)
+        top_layout.addLayout(button_layout)
+        
+        # Right side: AI widget
+        self.ai_widget = AIWidget()
+        self.ai_widget.completion_ready.connect(self.handle_ai_completion)
+        self.ai_widget.setFixedHeight(30)  # Set fixed height for the AI widget
+        top_layout.addWidget(self.ai_widget)
+        
+        main_layout.addLayout(top_layout)
 
         # Context label
         self.context_label = QLabel()
@@ -201,6 +216,9 @@ class MovableOverlayWidget(QWidget):
         self.ctrl_changed.connect(self.update_overlay)
         # Start global Ctrl listener in a thread
         self._start_ctrl_listener()
+        
+        # Start monitoring cursor position and selection
+        self._start_cursor_monitor()
 
     def _start_ctrl_listener(self):
         def listen_ctrl():
@@ -761,4 +779,116 @@ class MovableOverlayWidget(QWidget):
         else:
             self.favorites['shortcuts'].insert(0, shortcut)
         save_favorites(self.favorites)
-        self.update_overlay() 
+        self.update_overlay()
+
+    def _start_cursor_monitor(self):
+        """Start monitoring cursor position and selection for AI completions."""
+        def monitor_cursor():
+            last_content = None
+            while True:
+                try:
+                    # Get current window info
+                    window_title = get_active_window_title()
+                    if not window_title:
+                        continue
+                    
+                    # Get file extension if available
+                    file_extension = self.detect_language_by_extension(window_title)
+                    app_name = self.detect_app_by_name(window_title)
+                    
+                    # Get selected text if any
+                    selected_text = None
+                    if keyboard.is_pressed('shift'):
+                        # For now, we'll use the window title as content
+                        # In a real implementation, you'd need to get the actual text content
+                        content = window_title
+                    else:
+                        # Use the window title as context
+                        content = f"Context: {window_title}"
+                    
+                    # Only request completion if content has changed
+                    if content != last_content:
+                        last_content = content
+                        # Request completion if AI is enabled
+                        self.ai_widget.request_completion(
+                            content=content,
+                            cursor_position=0,  # For now, we'll use 0
+                            selection=selected_text,
+                            file_extension=file_extension,
+                            app_name=app_name
+                        )
+                    
+                except Exception as e:
+                    print(f"Error in cursor monitor: {str(e)}")
+                
+                time.sleep(0.5)  # Check every 500ms to reduce CPU usage
+        
+        # Start monitoring in a separate thread
+        threading.Thread(target=monitor_cursor, daemon=True).start()
+    
+    def handle_ai_completion(self, completion: str):
+        """Handle AI completion result."""
+        if not completion:
+            return
+            
+        # Create completion widget
+        completion_widget = QWidget()
+        completion_layout = QVBoxLayout()
+        completion_layout.setContentsMargins(10, 5, 10, 5)
+        
+        # Add completion text
+        completion_label = QLabel(completion)
+        completion_label.setStyleSheet("""
+            QLabel {
+                color: #aeefff;
+                background-color: #2d2d2d;
+                border: 1px solid #3d3d3d;
+                border-radius: 4px;
+                padding: 8px;
+                font-family: 'Consolas', monospace;
+                font-size: 14px;
+                margin-bottom: 5px;
+            }
+        """)
+        completion_label.setWordWrap(True)
+        completion_layout.addWidget(completion_label)
+        
+        # Add copy button
+        copy_button = QPushButton("Copy")
+        copy_button.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 4px 8px;
+                font-size: 12px;
+                margin-top: 5px;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """)
+        copy_button.clicked.connect(lambda: QApplication.clipboard().setText(completion))
+        completion_layout.addWidget(copy_button)
+        
+        completion_widget.setLayout(completion_layout)
+        
+        # Clear existing completions
+        for i in reversed(range(self.content_layout.count())):
+            widget = self.content_layout.itemAt(i).widget()
+            if widget and isinstance(widget, QWidget) and widget.property("is_completion"):
+                widget.deleteLater()
+        
+        # Mark as completion widget
+        completion_widget.setProperty("is_completion", True)
+        
+        # Add to content layout at the top
+        self.content_layout.insertWidget(0, completion_widget)
+        
+        # Make sure the completion is visible
+        self.scroll.verticalScrollBar().setValue(0)
+        completion_widget.show()
+        
+        # Add a small delay before removing the completion
+        QTimer.singleShot(30000, lambda: completion_widget.deleteLater())  # Increased to 30 seconds 
