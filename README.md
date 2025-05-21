@@ -8,7 +8,7 @@ A lightweight, context-aware overlay application that displays shortcuts, syntax
 - Displays relevant shortcuts or syntax based on context
 - Press Ctrl to switch between the function/knowledge tab (default) and the shortcut tab (while holding Ctrl)
 - Manual Home/Read buttons to lock the overlay to the home page or return to context-aware mode
-- **AI-Powered Completions**: Context-aware code completions using CodeLlama (optional)
+- **AI-Powered Explanations**: Get instant explanations for selected code or text using CodeLlama (optional)
 - **Compact, modern overlay UI** (shows only names, details on hover)
 - **Rich tooltips**: Mouse over any item to see a description and (if available) a code example in a code block
 - **Search/filter bar**: Quickly filter functions/shortcuts by name or summary
@@ -69,10 +69,11 @@ UltimateOverlay/
 - **Ctrl Key:**
   - Hold Ctrl to show shortcuts for the focused app.
   - Release Ctrl to show basic knowledge for the detected programming language (by file extension or app name).
-- **AI Completions:**
+- **AI Explanations:**
   - Toggle AI features using the AI button in the top-right corner
-  - Completions will appear at the top of the overlay when available
-  - Click the copy button to copy the completion to clipboard
+  - Select any text in your editor to get an AI-powered explanation
+  - The explanation will appear at the top of the overlay
+  - Click the copy button to copy the explanation to clipboard
 - **Focus:**
   - The overlay will not update with app/language info while locked on the home page.
 - **Context Bar:**
@@ -97,6 +98,8 @@ UltimateOverlay/
   - AI features are optional and can be toggled on/off
   - The model will be downloaded automatically on first use
   - Memory usage is optimized for CPU-only systems
+  - Provides detailed explanations for selected code or text
+  - Works with any text editor or IDE
 
 ## License
 This project is licensed under the Creative Commons Attribution-NonCommercial 4.0 International License (CC BY-NC 4.0).

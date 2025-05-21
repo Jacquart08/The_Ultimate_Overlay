@@ -16,6 +16,32 @@ import keyboard
 import webbrowser
 import re
 import time
+import win32gui
+import win32con
+import win32com.client
+import win32clipboard
+import pythoncom
+import ctypes
+import logging
+from typing import Optional
+from The_Ultimate_Overlay_App.ai.completion_system import CompletionSystem
+from The_Ultimate_Overlay_App.ai.config import AIConfig
+import win32api
+
+# Set up logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+# Create console handler if not already exists
+if not logger.handlers:
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.DEBUG)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    console_handler.setFormatter(formatter)
+    logger.addHandler(console_handler)
+
+# Initialize COM in the main thread
+pythoncom.CoInitialize()
 
 KNOWLEDGE_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config', 'knowledge.json')
 FAVORITES_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config', 'favorites.json')
@@ -132,119 +158,400 @@ class OverlayRowWidget(QWidget):
 
 class OverlayWindow:
     def __init__(self):
-        self.app = QApplication(sys.argv)
-        self.window = MovableOverlayWidget()
+        logger.info("Initializing OverlayWindow")
+        try:
+            # Create QApplication instance if it doesn't exist
+            if not QApplication.instance():
+                self.app = QApplication(sys.argv)
+                logger.info("QApplication created")
+            else:
+                self.app = QApplication.instance()
+                logger.info("Using existing QApplication instance")
+            
+            # Create the overlay widget
+            self.window = MovableOverlayWidget()
+            logger.info("MovableOverlayWidget created")
+            
+            # Set window position to center of screen
+            screen = QApplication.primaryScreen().geometry()
+            x = (screen.width() - self.window.width()) // 2
+            y = (screen.height() - self.window.height()) // 2
+            self.window.move(x, y)
+            
+        except Exception as e:
+            logger.error(f"Error in OverlayWindow.__init__: {str(e)}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            raise
 
     def run(self):
-        self.window.show()
-        sys.exit(self.app.exec())
+        logger.info("Starting OverlayWindow.run()")
+        try:
+            logger.info("About to show window")
+            # Add a small delay before showing the window
+            QTimer.singleShot(100, self._show_window)
+            logger.info("Window show scheduled")
+            
+            # Start the event loop and store the result
+            result = self.app.exec()
+            logger.info(f"Event loop ended with result: {result}")
+            return result
+            
+        except Exception as e:
+            logger.error(f"Exception in OverlayWindow.run(): {str(e)}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            print("Exception in OverlayWindow.run():", e)
+            traceback.print_exc()
+            return 1
+        finally:
+            logger.info("Cleaning up COM")
+            pythoncom.CoUninitialize()
+    
+    def _show_window(self):
+        """Show window with proper initialization."""
+        try:
+            logger.info("Showing window")
+            self.window.show()
+            # Add a small delay to ensure window is properly initialized
+            QTimer.singleShot(100, self._check_window_state)
+        except Exception as e:
+            logger.error(f"Error showing window: {str(e)}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+    
+    def _check_window_state(self):
+        """Check if the window is still valid and visible."""
+        try:
+            if not self.window.isVisible():
+                logger.error("Window is not visible after initialization")
+                self.window.show()
+            if not self.window.isActiveWindow():
+                logger.warning("Window is not active after initialization")
+                self.window.activateWindow()
+                self.window.raise_()
+        except Exception as e:
+            logger.error(f"Error checking window state: {str(e)}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
 
 class MovableOverlayWidget(QWidget):
     ctrl_changed = pyqtSignal()
     def __init__(self):
-        super().__init__()
-        self.setWindowFlags(
-            Qt.WindowType.WindowStaysOnTopHint |
-            Qt.WindowType.Tool
-        )
-        self.setWindowTitle("UltimateOverlay")
-        self.setWindowOpacity(0.8)
-        self.setMinimumSize(250, 100)
-        self.resize(350, 200)
+        logger.info("Initializing MovableOverlayWidget")
+        try:
+            super().__init__()
+            logger.info("Super().__init__() completed")
+            
+            # Initialize COM for this thread
+            pythoncom.CoInitialize()
+            logger.info("COM initialized")
+            
+            # Set window flags to make it completely non-interactive except for dragging
+            self.setWindowFlags(
+                Qt.WindowType.WindowStaysOnTopHint |
+                Qt.WindowType.Tool |
+                Qt.WindowType.FramelessWindowHint
+            )
+            logger.info("Window flags set")
+            
+            # Disable focus policy completely
+            self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+            
+            # Make all child widgets non-focusable
+            self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
+            self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+            self.setAttribute(Qt.WidgetAttribute.WA_NoSystemBackground)
+            self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+            self.setAttribute(Qt.WidgetAttribute.WA_NoMousePropagation, True)
+            self.setAttribute(Qt.WidgetAttribute.WA_AcceptTouchEvents, False)
+            self.setAttribute(Qt.WidgetAttribute.WA_NoChildEventsForParent, True)
+            self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
+            
+            # Add a border for better visibility
+            self.setStyleSheet("""
+                QWidget {
+                    background-color: rgba(40, 40, 40, 0.95);
+                    border: 1px solid rgba(100, 100, 100, 0.5);
+                    border-radius: 5px;
+                }
+                QScrollArea {
+                    border: none;
+                    background-color: transparent;
+                }
+                QScrollBar:vertical {
+                    border: none;
+                    background: rgba(60, 60, 60, 0.5);
+                    width: 10px;
+                    margin: 0px;
+                }
+                QScrollBar::handle:vertical {
+                    background: rgba(100, 100, 100, 0.5);
+                    min-height: 20px;
+                    border-radius: 5px;
+                }
+                QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                    height: 0px;
+                }
+                QLineEdit {
+                    background-color: rgba(60, 60, 60, 0.8);
+                    border: 1px solid rgba(100, 100, 100, 0.5);
+                    border-radius: 3px;
+                    padding: 5px;
+                    color: white;
+                }
+            """)
+            
+            self.setWindowTitle("UltimateOverlay")
+            self.setWindowOpacity(0.95)
+            self.setMinimumSize(250, 100)
+            self.resize(350, 200)
+            logger.info("Window properties set")
+            
+            self.home_locked = False
+            self.last_real_window_title = None
+            self._stop_monitor = False
+            self._monitor_thread = None
+            self._ctrl_listener_thread = None
+            self._initialized = False
+            logger.info("State variables initialized")
 
-        self.home_locked = False
-        self.last_real_window_title = None
+            # Create main layout with proper spacing
+            main_layout = QVBoxLayout()
+            main_layout.setSpacing(8)
+            main_layout.setContentsMargins(10, 10, 10, 10)
+            logger.info("Main layout created")
+            
+            # Top row with Home/Read/AI buttons
+            top_layout = QHBoxLayout()
+            top_layout.setSpacing(8)
+            logger.info("Top layout created")
+            
+            # Home button
+            self.home_button = QPushButton("Home")
+            self.home_button.setFixedSize(60, 30)
+            self.home_button.setStyleSheet("""
+                QPushButton {
+                    background-color: #2d2d2d;
+                    color: #ffffff;
+                    border: 1px solid #3d3d3d;
+                    border-radius: 4px;
+                    padding: 5px 10px;
+                    font-size: 12px;
+                }
+                QPushButton:hover {
+                    background-color: #3d3d3d;
+                    border-color: #4d4d4d;
+                }
+            """)
+            self.home_button.clicked.connect(self.lock_home)
+            top_layout.addWidget(self.home_button)
+            logger.info("Home button created and added")
+            
+            # Read button
+            self.read_button = QPushButton("Read")
+            self.read_button.setFixedSize(60, 30)
+            self.read_button.setStyleSheet("""
+                QPushButton {
+                    background-color: #2d2d2d;
+                    color: #ffffff;
+                    border: 1px solid #3d3d3d;
+                    border-radius: 4px;
+                    padding: 5px 10px;
+                    font-size: 12px;
+                }
+                QPushButton:hover {
+                    background-color: #3d3d3d;
+                    border-color: #4d4d4d;
+                }
+            """)
+            self.read_button.clicked.connect(self.unlock_home)
+            top_layout.addWidget(self.read_button)
+            logger.info("Read button created and added")
+            
+            # AI button
+            logger.info("Creating AI widget")
+            self.ai_widget = AIWidget()
+            logger.info("AI widget created")
+            self.ai_widget.toggle_button.setFixedSize(60, 30)
+            self.ai_widget.toggle_button.setStyleSheet("""
+                QPushButton {
+                    background-color: #2d2d2d;
+                    color: #ffffff;
+                    border: 1px solid #3d3d3d;
+                    border-radius: 4px;
+                    padding: 5px 10px;
+                    font-size: 12px;
+                }
+                QPushButton:hover {
+                    background-color: #3d3d3d;
+                    border-color: #4d4d4d;
+                }
+                QPushButton:checked {
+                    background-color: #4CAF50;
+                    border-color: #45a049;
+                    color: white;
+                }
+                QPushButton:disabled {
+                    background-color: #1d1d1d;
+                    color: #666666;
+                    border-color: #2d2d2d;
+                }
+            """)
+            top_layout.addWidget(self.ai_widget.toggle_button)
+            logger.info("AI button added to layout")
+            
+            main_layout.addLayout(top_layout)
+            logger.info("Top layout added to main layout")
 
-        main_layout = QVBoxLayout()
-        
-        # Top row with Home/Read buttons and AI widget
-        top_layout = QHBoxLayout()
-        
-        # Left side: Home/Read buttons
-        button_layout = QHBoxLayout()
-        self.home_button = QPushButton("Home")
-        self.home_button.clicked.connect(self.lock_home)
-        self.read_button = QPushButton("Read")
-        self.read_button.clicked.connect(self.unlock_home)
-        button_layout.addWidget(self.home_button)
-        button_layout.addWidget(self.read_button)
-        top_layout.addLayout(button_layout)
-        
-        # Right side: AI widget
-        self.ai_widget = AIWidget()
-        self.ai_widget.completion_ready.connect(self.handle_ai_completion)
-        self.ai_widget.setFixedHeight(30)  # Set fixed height for the AI widget
-        top_layout.addWidget(self.ai_widget)
-        
-        main_layout.addLayout(top_layout)
+            # Context label
+            self.context_label = QLabel()
+            self.context_label.setStyleSheet("color: #aeefff; font-size: 12px; padding: 2px 0 4px 0;")
+            main_layout.addWidget(self.context_label)
+            logger.info("Context label created and added")
 
-        # Context label
-        self.context_label = QLabel()
-        self.context_label.setStyleSheet("color: #aeefff; font-size: 12px; padding: 2px 0 4px 0;")
-        main_layout.addWidget(self.context_label)
+            # Search bar
+            self.search_bar = QLineEdit()
+            self.search_bar.setPlaceholderText("Search...")
+            self.search_bar.textChanged.connect(self.update_overlay)
+            main_layout.addWidget(self.search_bar)
+            logger.info("Search bar created and added")
 
-        # Search bar
-        self.search_bar = QLineEdit()
-        self.search_bar.setPlaceholderText("Search...")
-        self.search_bar.textChanged.connect(self.update_overlay)
-        main_layout.addWidget(self.search_bar)
+            # Create scroll area with proper styling
+            self.scroll = QScrollArea()
+            self.scroll.setWidgetResizable(True)
+            self.scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+            self.content_widget = QWidget()
+            self.content_layout = QVBoxLayout()
+            self.content_layout.setSpacing(4)
+            self.content_layout.setContentsMargins(0, 0, 0, 0)
+            self.content_widget.setLayout(self.content_layout)
+            self.scroll.setWidget(self.content_widget)
+            main_layout.addWidget(self.scroll)
+            self.setLayout(main_layout)
+            logger.info("Scroll area and content layout created and added")
 
-        self.scroll = QScrollArea()
-        self.scroll.setWidgetResizable(True)
-        self.content_widget = QWidget()
-        self.content_layout = QVBoxLayout()
-        self.content_widget.setLayout(self.content_layout)
-        self.scroll.setWidget(self.content_widget)
-        main_layout.addWidget(self.scroll)
-        self.setLayout(main_layout)
+            self._drag_active = False
+            self._drag_position = QPoint()
 
-        self._drag_active = False
-        self._drag_position = QPoint()
+            # Timer for auto-updating shortcuts
+            self.timer = QTimer(self)
+            self.timer.timeout.connect(self.update_shortcuts)
+            logger.info("Timer created")
 
-        # Timer for auto-updating shortcuts
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self.update_shortcuts)
-        self.timer.start(1000)  # Check every 1 second
+            self.ctrl_pressed = False
+            self.knowledge = load_knowledge()
+            self.favorites = load_favorites()
+            self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+            self.has_focus = False
+            self.block_updates = False
+            self.force_homepage = False
+            self.ctrl_changed.connect(self.update_overlay)
+            logger.info("State initialized and signals connected")
+            
+            # Mark as initialized
+            self._initialized = True
+            logger.info("MovableOverlayWidget initialization completed")
+            
+        except Exception as e:
+            logger.error(f"Error in MovableOverlayWidget.__init__: {str(e)}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            raise
 
-        self.ctrl_pressed = False
-        self.knowledge = load_knowledge()
-        self.favorites = load_favorites()
-        self.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
-        self.has_focus = False
-        self.block_updates = False
-        self.force_homepage = False
-        self.ctrl_changed.connect(self.update_overlay)
-        # Start global Ctrl listener in a thread
-        self._start_ctrl_listener()
-        
-        # Start monitoring cursor position and selection
-        self._start_cursor_monitor()
+    def showEvent(self, event):
+        """Handle show event with improved error handling."""
+        try:
+            logger.info("Window show event received")
+            super().showEvent(event)
+            
+            if not self._initialized:
+                logger.error("Window not properly initialized")
+                return
+                
+            # Don't activate window or raise it to prevent crashes
+            # Just ensure window stays on top
+            self.setWindowState(Qt.WindowState.WindowActive)
+            # Force update
+            self.update()
+            
+            # Start monitoring threads if not already started
+            if not hasattr(self, '_monitor_thread') or not self._monitor_thread.is_alive():
+                self._start_cursor_monitor()
+            if not hasattr(self, '_ctrl_listener_thread') or not self._ctrl_listener_thread.is_alive():
+                self._start_ctrl_listener()
+                
+            # Start the update timer if not already started
+            if hasattr(self, 'timer') and not self.timer.isActive():
+                self.timer.start(1000)
+                
+        except Exception as e:
+            logger.error(f"Error in showEvent: {str(e)}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+
+    def closeEvent(self, event):
+        """Handle window close event with improved error handling."""
+        try:
+            logger.info("Window close event received")
+            # Stop monitoring threads
+            self._stop_monitor = True
+            if self._monitor_thread and self._monitor_thread.is_alive():
+                self._monitor_thread.join(timeout=1.0)
+            if self._ctrl_listener_thread and self._ctrl_listener_thread.is_alive():
+                self._ctrl_listener_thread.join(timeout=1.0)
+            # Stop timer
+            if hasattr(self, 'timer') and self.timer.isActive():
+                self.timer.stop()
+            # Cleanup COM
+            pythoncom.CoUninitialize()
+            super().closeEvent(event)
+        except Exception as e:
+            logger.error(f"Error in closeEvent: {str(e)}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            event.accept()  # Ensure window closes even if there's an error
 
     def _start_ctrl_listener(self):
+        """Start Ctrl key listener in a separate thread."""
         def listen_ctrl():
-            while True:
-                ctrl_now = keyboard.is_pressed('ctrl')
-                if ctrl_now != self.ctrl_pressed:
-                    print(f"[DEBUG] Ctrl state changed: {ctrl_now}")
-                    self.ctrl_pressed = ctrl_now
-                    self.ctrl_changed.emit()
-                import time; time.sleep(0.05)
-        t = threading.Thread(target=listen_ctrl, daemon=True)
-        t.start()
+            while not self._stop_monitor:
+                try:
+                    ctrl_now = keyboard.is_pressed('ctrl')
+                    if ctrl_now != self.ctrl_pressed:
+                        print(f"[DEBUG] Ctrl state changed: {ctrl_now}")
+                        self.ctrl_pressed = ctrl_now
+                        self.ctrl_changed.emit()
+                    time.sleep(0.05)
+                except Exception as e:
+                    logger.error(f"Error in Ctrl listener: {str(e)}")
+                    time.sleep(1)  # Longer delay on error
+        self._ctrl_listener_thread = threading.Thread(target=listen_ctrl, daemon=True)
+        self._ctrl_listener_thread.start()
 
     def focusInEvent(self, event):
-        self.has_focus = True
-        self.block_updates = True
-        print('[DEBUG] focusInEvent: focus_homepage logic removed')
-        self.update_overlay()
-        super().focusInEvent(event)
+        """Handle focus in event with improved error handling."""
+        try:
+            logger.info("Focus in event received")
+            # Don't set focus or update state to prevent crashes
+            event.ignore()
+        except Exception as e:
+            logger.error(f"Error in focusInEvent: {str(e)}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            event.ignore()
 
     def focusOutEvent(self, event):
-        self.has_focus = False
-        self.block_updates = False
-        print('[DEBUG] focusOutEvent: force_homepage logic removed')
-        self.update_overlay()
-        super().focusOutEvent(event)
+        """Handle focus out event with improved error handling."""
+        try:
+            logger.info("Focus out event received")
+            # Don't update state to prevent crashes
+            event.ignore()
+        except Exception as e:
+            logger.error(f"Error in focusOutEvent: {str(e)}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            event.ignore()
 
     def detect_language_by_extension(self, window_title):
         ext_to_lang = {
@@ -500,258 +807,315 @@ class MovableOverlayWidget(QWidget):
         layout.addLayout(actions_layout)
 
     def update_overlay(self):
-        if self.rect().contains(self.mapFromGlobal(QCursor.pos())):
-            return
-        search_text = self.search_bar.text().strip().lower() if hasattr(self, 'search_bar') else ""
-        window_title = get_active_window_title()
-        if window_title and window_title.strip() == self.windowTitle():
-            window_title = self.last_real_window_title
-        else:
-            if window_title:
-                self.last_real_window_title = window_title
-        context_str = window_title or "Unknown context"
-        language = self.detect_language_by_extension(window_title)
-        app_name = self.detect_app_by_name(window_title)
-        if language:
-            context_str = f"{context_str}<br><span style='color:#ffeebb;'>Language: <b>{language}</b></span>"
-        if app_name:
-            context_str = f"{context_str}<br><span style='color:#aeefff;'>App: <b>{app_name}</b></span>"
-        self.context_label.setText(context_str)
-        self.context_label.setTextFormat(Qt.TextFormat.RichText)
-        print(f"[DEBUG] update_overlay called. ctrl_pressed={self.ctrl_pressed}, has_focus={self.has_focus}, block_updates={self.block_updates}, home_locked={self.home_locked}, window_title={window_title}")
-        for i in reversed(range(self.content_layout.count())):
-            widget = self.content_layout.itemAt(i).widget()
-            if widget:
-                widget.setParent(None)
-        home_apps = [
-            'excel', 'microsoft excel', 'word', 'microsoft word', 'powerpoint', 'microsoft powerpoint',
-            'outlook', 'microsoft outlook', 'onenote', 'microsoft onenote', 'teams', 'microsoft teams',
-            'firefox', 'mozilla firefox', 'chrome', 'google chrome', 'edge', 'microsoft edge', 'internet explorer',
-            'steam', 'epic games', 'discord', 'spotify', 'windows terminal', 'cmd.exe', 'powershell', 'windows powershell'
-        ]
-        if self.ctrl_pressed:
-            # Shortcuts tab: use app name only
-            app_name = self.detect_app_by_name(window_title)
-            shortcuts = get_shortcuts_for_app(app_name)
-            if shortcuts:
-                pinned = []
-                unpinned = []
-                for s in shortcuts:
-                    if s['shortcut'] in self.favorites['shortcuts']:
-                        pinned.append(s)
-                    else:
-                        unpinned.append(s)
-                for s in pinned + unpinned:
-                    desc = s.get('description', '')
-                    code = s.get('code', None)
-                    summary = s.get('summary', '')
-                    tooltip = f"{desc}"
-                    if code:
-                        tooltip += f"<br><hr><pre>{code}</pre>"
-                    # Filter by search
-                    if search_text and not (s['shortcut'].lower().startswith(search_text) or (summary and summary.lower().startswith(search_text))):
-                        continue
-                    is_fav = s['shortcut'] in self.favorites['shortcuts']
-                    def make_copy_cb_shortcut(val=s['shortcut']):
-                        return lambda: QGuiApplication.clipboard().setText(val)
-                    def make_doc_cb_shortcut(app=app_name, t=s['shortcut']):
-                        return lambda: webbrowser.open(get_doc_url(app, t))
-                    row_widget = OverlayRowWidget(
-                        QLabel(f"<b>{s['shortcut']}</b>"),
-                        QLabel(summary),
-                        tooltip,
-                        is_fav,
-                        lambda checked, t=s['shortcut']: self.pin_shortcut(t),
-                        make_copy_cb_shortcut(),
-                        make_doc_cb_shortcut()
-                    )
-                    self.content_layout.addWidget(row_widget)
-            else:
-                row_widget = OverlayRowWidget(QLabel("No shortcuts found for this app."), QLabel(""), "", False, lambda checked, t=None: self.pin_shortcut(t), lambda: QGuiApplication.clipboard().setText(""), lambda: webbrowser.open(get_doc_url(language, None)))
-                self.content_layout.addWidget(row_widget)
-            return
+        """Update overlay content with error handling."""
+        try:
+            # Skip update if mouse is over the window to prevent focus issues
+            if self.rect().contains(self.mapFromGlobal(QCursor.pos())):
+                logger.debug("Skipping update - mouse over window")
+                return
 
-        if app_name and app_name in home_apps:
-            # Check if a language is detected and knowledge exists for it
-            if language and language in self.knowledge:
-                print(f"[DEBUG] Language {language} detected in home app, showing knowledge instead of home page.")
-                app_knowledge = self.knowledge[language]
-                pinned = []
-                unpinned = []
-                for k in app_knowledge:
-                    if k['title'] in self.favorites['knowledge']:
-                        pinned.append(k)
-                    else:
-                        unpinned.append(k)
-                for k in pinned + unpinned:
-                    desc = k.get('description', '')
-                    code = k.get('code', None)
-                    summary = k.get('summary', '')
+            # Skip update if window has focus to prevent crashes
+            if self.hasFocus():
+                logger.debug("Skipping update - window has focus")
+                return
+
+            # Skip update if window is being dragged
+            if self._drag_active:
+                logger.debug("Skipping update - window is being dragged")
+                return
+
+            search_text = self.search_bar.text().strip().lower() if hasattr(self, 'search_bar') else ""
+            window_title = get_active_window_title()
+            if window_title and window_title.strip() == self.windowTitle():
+                window_title = self.last_real_window_title
+            else:
+                if window_title:
+                    self.last_real_window_title = window_title
+            context_str = window_title or "Unknown context"
+            language = self.detect_language_by_extension(window_title)
+            app_name = self.detect_app_by_name(window_title)
+            if language:
+                context_str = f"{context_str}<br><span style='color:#ffeebb;'>Language: <b>{language}</b></span>"
+            if app_name:
+                context_str = f"{context_str}<br><span style='color:#aeefff;'>App: <b>{app_name}</b></span>"
+            self.context_label.setText(context_str)
+            self.context_label.setTextFormat(Qt.TextFormat.RichText)
+            print(f"[DEBUG] update_overlay called. ctrl_pressed={self.ctrl_pressed}, has_focus={self.has_focus}, block_updates={self.block_updates}, home_locked={self.home_locked}, window_title={window_title}")
+            
+            # Clear existing content
+            for i in reversed(range(self.content_layout.count())):
+                widget = self.content_layout.itemAt(i).widget()
+                if widget:
+                    widget.setParent(None)
+                    widget.deleteLater()
+            
+            home_apps = [
+                'excel', 'microsoft excel', 'word', 'microsoft word', 'powerpoint', 'microsoft powerpoint',
+                'outlook', 'microsoft outlook', 'onenote', 'microsoft onenote', 'teams', 'microsoft teams',
+                'firefox', 'mozilla firefox', 'chrome', 'google chrome', 'edge', 'microsoft edge', 'internet explorer',
+                'steam', 'epic games', 'discord', 'spotify', 'windows terminal', 'cmd.exe', 'powershell', 'windows powershell'
+            ]
+            if self.ctrl_pressed:
+                # Shortcuts tab: use app name only
+                app_name = self.detect_app_by_name(window_title)
+                shortcuts = get_shortcuts_for_app(app_name)
+                if shortcuts:
+                    pinned = []
+                    unpinned = []
+                    for s in shortcuts:
+                        if s['shortcut'] in self.favorites['shortcuts']:
+                            pinned.append(s)
+                        else:
+                            unpinned.append(s)
+                    for s in pinned + unpinned:
+                        desc = s.get('description', '')
+                        code = s.get('code', None)
+                        summary = s.get('summary', '')
+                        tooltip = f"{desc}"
+                        if code:
+                            tooltip += f"<br><hr><pre>{code}</pre>"
+                        # Filter by search
+                        if search_text and not (s['shortcut'].lower().startswith(search_text) or (summary and summary.lower().startswith(search_text))):
+                            continue
+                        is_fav = s['shortcut'] in self.favorites['shortcuts']
+                        def make_copy_cb_shortcut(val=s['shortcut']):
+                            return lambda: QGuiApplication.clipboard().setText(val)
+                        def make_doc_cb_shortcut(app=app_name, t=s['shortcut']):
+                            return lambda: webbrowser.open(get_doc_url(app, t))
+                        row_widget = OverlayRowWidget(
+                            QLabel(f"<b>{s['shortcut']}</b>"),
+                            QLabel(summary),
+                            tooltip,
+                            is_fav,
+                            lambda checked, t=s['shortcut']: self.pin_shortcut(t),
+                            make_copy_cb_shortcut(),
+                            make_doc_cb_shortcut()
+                        )
+                        self.content_layout.addWidget(row_widget)
+                else:
+                    row_widget = OverlayRowWidget(QLabel("No shortcuts found for this app."), QLabel(""), "", False, lambda checked, t=None: self.pin_shortcut(t), lambda: QGuiApplication.clipboard().setText(""), lambda: webbrowser.open(get_doc_url(language, None)))
+                    self.content_layout.addWidget(row_widget)
+                return
+
+            if app_name and app_name in home_apps:
+                # Check if a language is detected and knowledge exists for it
+                if language and language in self.knowledge:
+                    print(f"[DEBUG] Language {language} detected in home app, showing knowledge instead of home page.")
+                    app_knowledge = self.knowledge[language]
+                    pinned = []
+                    unpinned = []
+                    for k in app_knowledge:
+                        if k['title'] in self.favorites['knowledge']:
+                            pinned.append(k)
+                        else:
+                            unpinned.append(k)
+                    for k in pinned + unpinned:
+                        desc = k.get('description', '')
+                        code = k.get('code', None)
+                        summary = k.get('summary', '')
+                        tooltip = f"{desc}"
+                        if code:
+                            tooltip += f"<br><hr><pre>{code}</pre>"
+                        # Filter by search
+                        if search_text and not (k['title'].lower().startswith(search_text) or (summary and summary.lower().startswith(search_text))):
+                            continue
+                        is_fav = k['title'] in self.favorites['knowledge']
+                        def make_copy_cb(c=code):
+                            return lambda: QGuiApplication.clipboard().setText(c or "")
+                        def make_doc_cb(lang=language, t=k['title']):
+                            return lambda: webbrowser.open(get_doc_url(lang, t))
+                        row_widget = OverlayRowWidget(
+                            QLabel(f"<b>{k['title']}</b>"),
+                            QLabel(summary),
+                            tooltip,
+                            is_fav,
+                            lambda checked, t=k['title']: self.pin_knowledge(t),
+                            make_copy_cb(),
+                            make_doc_cb()
+                        )
+                        self.content_layout.addWidget(row_widget)
+                    return
+                # Otherwise, show the home page
+                print(f"[DEBUG] Showing home page for {app_name} (window title: {window_title})")
+                home_widget = self.create_app_home(window_title)
+                self.content_layout.addWidget(home_widget)
+                return
+            if getattr(self, 'home_locked', False):
+                menu_items = [
+                    ("Settings", "Open the settings menu.", None, None),
+                    ("Reload", "Reload the overlay.", None, None),
+                    ("About", "About this overlay.", None, None),
+                ]
+                for title, desc, code, summary in menu_items:
                     tooltip = f"{desc}"
                     if code:
                         tooltip += f"<br><hr><pre>{code}</pre>"
                     # Filter by search
-                    if search_text and not (k['title'].lower().startswith(search_text) or (summary and summary.lower().startswith(search_text))):
+                    if search_text and not (title.lower().startswith(search_text) or (summary and summary.lower().startswith(search_text))):
                         continue
-                    is_fav = k['title'] in self.favorites['knowledge']
                     def make_copy_cb(c=code):
                         return lambda: QGuiApplication.clipboard().setText(c or "")
-                    def make_doc_cb(lang=language, t=k['title']):
+                    def make_doc_cb(lang=language, t=title):
                         return lambda: webbrowser.open(get_doc_url(lang, t))
                     row_widget = OverlayRowWidget(
-                        QLabel(f"<b>{k['title']}</b>"),
-                        QLabel(summary),
+                        QLabel(f"<b>{title}</b>"),
+                        QLabel(summary or ""),
                         tooltip,
-                        is_fav,
-                        lambda checked, t=k['title']: self.pin_knowledge(t),
+                        False,
+                        lambda checked, t=title: self.pin_knowledge(t),
                         make_copy_cb(),
                         make_doc_cb()
                     )
                     self.content_layout.addWidget(row_widget)
                 return
-            # Otherwise, show the home page
-            print(f"[DEBUG] Showing home page for {app_name} (window title: {window_title})")
-            home_widget = self.create_app_home(window_title)
-            self.content_layout.addWidget(home_widget)
-            return
-        if getattr(self, 'home_locked', False):
-            menu_items = [
-                ("Settings", "Open the settings menu.", None, None),
-                ("Reload", "Reload the overlay.", None, None),
-                ("About", "About this overlay.", None, None),
-            ]
-            for title, desc, code, summary in menu_items:
-                tooltip = f"{desc}"
-                if code:
-                    tooltip += f"<br><hr><pre>{code}</pre>"
-                # Filter by search
-                if search_text and not (title.lower().startswith(search_text) or (summary and summary.lower().startswith(search_text))):
-                    continue
-                def make_copy_cb(c=code):
-                    return lambda: QGuiApplication.clipboard().setText(c or "")
-                def make_doc_cb(lang=language, t=title):
-                    return lambda: webbrowser.open(get_doc_url(lang, t))
-                row_widget = OverlayRowWidget(
-                    QLabel(f"<b>{title}</b>"),
-                    QLabel(summary or ""),
-                    tooltip,
-                    False,
-                    lambda checked, t=title: self.pin_knowledge(t),
-                    make_copy_cb(),
-                    make_doc_cb()
-                )
-                self.content_layout.addWidget(row_widget)
-            return
-        if self.ctrl_pressed:
-            # Shortcuts tab: use app name only
-            app_name = self.detect_app_by_name(window_title)
-            shortcuts = get_shortcuts_for_app(app_name)
-            if shortcuts:
-                pinned = []
-                unpinned = []
-                for s in shortcuts:
-                    if s['shortcut'] in self.favorites['shortcuts']:
-                        pinned.append(s)
-                    else:
-                        unpinned.append(s)
-                for s in pinned + unpinned:
-                    desc = s.get('description', '')
-                    code = s.get('code', None)
-                    summary = s.get('summary', '')
-                    tooltip = f"{desc}"
-                    if code:
-                        tooltip += f"<br><hr><pre>{code}</pre>"
-                    # Filter by search
-                    if search_text and not (s['shortcut'].lower().startswith(search_text) or (summary and summary.lower().startswith(search_text))):
-                        continue
-                    is_fav = s['shortcut'] in self.favorites['shortcuts']
-                    def make_copy_cb_shortcut(val=s['shortcut']):
-                        return lambda: QGuiApplication.clipboard().setText(val)
-                    def make_doc_cb_shortcut(app=app_name, t=s['shortcut']):
-                        return lambda: webbrowser.open(get_doc_url(app, t))
-                    row_widget = OverlayRowWidget(
-                        QLabel(f"<b>{s['shortcut']}</b>"),
-                        QLabel(summary),
-                        tooltip,
-                        is_fav,
-                        lambda checked, t=s['shortcut']: self.pin_shortcut(t),
-                        make_copy_cb_shortcut(),
-                        make_doc_cb_shortcut()
-                    )
+            if self.ctrl_pressed:
+                # Shortcuts tab: use app name only
+                app_name = self.detect_app_by_name(window_title)
+                shortcuts = get_shortcuts_for_app(app_name)
+                if shortcuts:
+                    pinned = []
+                    unpinned = []
+                    for s in shortcuts:
+                        if s['shortcut'] in self.favorites['shortcuts']:
+                            pinned.append(s)
+                        else:
+                            unpinned.append(s)
+                    for s in pinned + unpinned:
+                        desc = s.get('description', '')
+                        code = s.get('code', None)
+                        summary = s.get('summary', '')
+                        tooltip = f"{desc}"
+                        if code:
+                            tooltip += f"<br><hr><pre>{code}</pre>"
+                        # Filter by search
+                        if search_text and not (s['shortcut'].lower().startswith(search_text) or (summary and summary.lower().startswith(search_text))):
+                            continue
+                        is_fav = s['shortcut'] in self.favorites['shortcuts']
+                        def make_copy_cb_shortcut(val=s['shortcut']):
+                            return lambda: QGuiApplication.clipboard().setText(val)
+                        def make_doc_cb_shortcut(app=app_name, t=s['shortcut']):
+                            return lambda: webbrowser.open(get_doc_url(app, t))
+                        row_widget = OverlayRowWidget(
+                            QLabel(f"<b>{s['shortcut']}</b>"),
+                            QLabel(summary),
+                            tooltip,
+                            is_fav,
+                            lambda checked, t=s['shortcut']: self.pin_shortcut(t),
+                            make_copy_cb_shortcut(),
+                            make_doc_cb_shortcut()
+                        )
+                        self.content_layout.addWidget(row_widget)
+                else:
+                    row_widget = OverlayRowWidget(QLabel("No shortcuts found for this app."), QLabel(""), "", False, lambda checked, t=None: self.pin_shortcut(t), lambda: QGuiApplication.clipboard().setText(""), lambda: webbrowser.open(get_doc_url(language, None)))
                     self.content_layout.addWidget(row_widget)
             else:
-                row_widget = OverlayRowWidget(QLabel("No shortcuts found for this app."), QLabel(""), "", False, lambda checked, t=None: self.pin_shortcut(t), lambda: QGuiApplication.clipboard().setText(""), lambda: webbrowser.open(get_doc_url(language, None)))
-                self.content_layout.addWidget(row_widget)
-        else:
-            # Knowledge tab: use file extension only
-            language = self.detect_language_by_extension(window_title)
-            app_knowledge = []
-            if language and language in self.knowledge:
-                app_knowledge = self.knowledge[language]
-            else:
-                window_title_lower = window_title.lower() if window_title else ""
-                for app_name, knowledge_list in self.knowledge.items():
-                    if app_name.lower() in window_title_lower:
-                        app_knowledge = knowledge_list
-                        break
-            if app_knowledge:
-                pinned = []
-                unpinned = []
-                for k in app_knowledge:
-                    if k['title'] in self.favorites['knowledge']:
-                        pinned.append(k)
-                    else:
-                        unpinned.append(k)
-                for k in pinned + unpinned:
-                    desc = k.get('description', '')
-                    code = k.get('code', None)
-                    summary = k.get('summary', '')
-                    tooltip = f"{desc}"
-                    if code:
-                        tooltip += f"<br><hr><pre>{code}</pre>"
-                    # Filter by search
-                    if search_text and not (k['title'].lower().startswith(search_text) or (summary and summary.lower().startswith(search_text))):
-                        continue
-                    is_fav = k['title'] in self.favorites['knowledge']
-                    def make_copy_cb(c=code):
-                        return lambda: QGuiApplication.clipboard().setText(c or "")
-                    def make_doc_cb(lang=language, t=k['title']):
-                        return lambda: webbrowser.open(get_doc_url(lang, t))
-                    row_widget = OverlayRowWidget(
-                        QLabel(f"<b>{k['title']}</b>"),
-                        QLabel(summary),
-                        tooltip,
-                        is_fav,
-                        lambda checked, t=k['title']: self.pin_knowledge(t),
-                        make_copy_cb(),
-                        make_doc_cb()
-                    )
+                # Knowledge tab: use file extension only
+                language = self.detect_language_by_extension(window_title)
+                app_knowledge = []
+                if language and language in self.knowledge:
+                    app_knowledge = self.knowledge[language]
+                else:
+                    window_title_lower = window_title.lower() if window_title else ""
+                    for app_name, knowledge_list in self.knowledge.items():
+                        if app_name.lower() in window_title_lower:
+                            app_knowledge = knowledge_list
+                            break
+                if app_knowledge:
+                    pinned = []
+                    unpinned = []
+                    for k in app_knowledge:
+                        if k['title'] in self.favorites['knowledge']:
+                            pinned.append(k)
+                        else:
+                            unpinned.append(k)
+                    for k in pinned + unpinned:
+                        desc = k.get('description', '')
+                        code = k.get('code', None)
+                        summary = k.get('summary', '')
+                        tooltip = f"{desc}"
+                        if code:
+                            tooltip += f"<br><hr><pre>{code}</pre>"
+                        # Filter by search
+                        if search_text and not (k['title'].lower().startswith(search_text) or (summary and summary.lower().startswith(search_text))):
+                            continue
+                        is_fav = k['title'] in self.favorites['knowledge']
+                        def make_copy_cb(c=code):
+                            return lambda: QGuiApplication.clipboard().setText(c or "")
+                        def make_doc_cb(lang=language, t=k['title']):
+                            return lambda: webbrowser.open(get_doc_url(lang, t))
+                        row_widget = OverlayRowWidget(
+                            QLabel(f"<b>{k['title']}</b>"),
+                            QLabel(summary),
+                            tooltip,
+                            is_fav,
+                            lambda checked, t=k['title']: self.pin_knowledge(t),
+                            make_copy_cb(),
+                            make_doc_cb()
+                        )
+                        self.content_layout.addWidget(row_widget)
+                else:
+                    row_widget = OverlayRowWidget(QLabel("No basic knowledge found for this language or app."), QLabel(""), "", False, lambda checked, t=None: self.pin_knowledge(t), lambda: QGuiApplication.clipboard().setText(""), lambda: webbrowser.open(get_doc_url(language, None)))
                     self.content_layout.addWidget(row_widget)
-            else:
-                row_widget = OverlayRowWidget(QLabel("No basic knowledge found for this language or app."), QLabel(""), "", False, lambda checked, t=None: self.pin_knowledge(t), lambda: QGuiApplication.clipboard().setText(""), lambda: webbrowser.open(get_doc_url(language, None)))
-                self.content_layout.addWidget(row_widget)
+            
+        except Exception as e:
+            logger.error(f"Error in update_overlay: {str(e)}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
 
     def update_shortcuts(self):
-        if getattr(self, 'home_locked', False):
-            return
-        self.update_overlay()
+        """Update shortcuts with error handling."""
+        try:
+            if getattr(self, 'home_locked', False):
+                return
+            self.update_overlay()
+        except Exception as e:
+            logger.error(f"Error in update_shortcuts: {str(e)}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
 
     def mousePressEvent(self, event):
-        if event.button() == Qt.MouseButton.LeftButton:
-            self.setFocus()
-            self._drag_active = True
-            self._drag_position = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
-            event.accept()
+        """Handle mouse press with improved focus handling."""
+        try:
+            if event.button() == Qt.MouseButton.LeftButton:
+                # Only handle drag, never set focus
+                self._drag_active = True
+                self._drag_position = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
+                event.accept()
+            else:
+                event.ignore()
+        except Exception as e:
+            logger.error(f"Error in mousePressEvent: {str(e)}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            event.ignore()
 
     def mouseMoveEvent(self, event):
-        if self._drag_active and event.buttons() & Qt.MouseButton.LeftButton:
-            self.move(event.globalPosition().toPoint() - self._drag_position)
-            event.accept()
+        """Handle mouse move with improved focus handling."""
+        try:
+            if self._drag_active and event.buttons() & Qt.MouseButton.LeftButton:
+                self.move(event.globalPosition().toPoint() - self._drag_position)
+                event.accept()
+            else:
+                event.ignore()
+        except Exception as e:
+            logger.error(f"Error in mouseMoveEvent: {str(e)}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            event.ignore()
 
     def mouseReleaseEvent(self, event):
-        if event.button() == Qt.MouseButton.LeftButton:
-            self._drag_active = False
-            event.accept()
+        """Handle mouse release with improved focus handling."""
+        try:
+            if event.button() == Qt.MouseButton.LeftButton:
+                self._drag_active = False
+                event.accept()
+            else:
+                event.ignore()
+        except Exception as e:
+            logger.error(f"Error in mouseReleaseEvent: {str(e)}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            event.ignore()
 
     def mouseDoubleClickEvent(self, event):
         # Ignore double-clicks to prevent accidental close
@@ -782,113 +1146,260 @@ class MovableOverlayWidget(QWidget):
         self.update_overlay()
 
     def _start_cursor_monitor(self):
-        """Start monitoring cursor position and selection for AI completions."""
-        def monitor_cursor():
-            last_content = None
-            while True:
+        """Start monitoring cursor position and selection."""
+        def monitor():
+            last_pos = None
+            last_selection = None
+            last_window = None
+            while not self._stop_monitor:
                 try:
-                    # Get current window info
-                    window_title = get_active_window_title()
-                    if not window_title:
+                    # Get current cursor position
+                    cursor_pos = QCursor.pos()
+                    
+                    # Get active window
+                    hwnd = win32gui.GetForegroundWindow()
+                    if not hwnd:
+                        time.sleep(0.1)
+                        continue
+                        
+                    window_title = win32gui.GetWindowText(hwnd)
+                    class_name = win32gui.GetClassName(hwnd)
+                    
+                    # Skip if it's our own window
+                    if class_name == "Qt690QWindowToolSaveBits" or window_title == self.windowTitle():
+                        time.sleep(0.1)
                         continue
                     
-                    # Get file extension if available
-                    file_extension = self.detect_language_by_extension(window_title)
-                    app_name = self.detect_app_by_name(window_title)
+                    # Get selected text
+                    selected_text = self._get_selected_text()
                     
-                    # Get selected text if any
-                    selected_text = None
-                    if keyboard.is_pressed('shift'):
-                        # For now, we'll use the window title as content
-                        # In a real implementation, you'd need to get the actual text content
-                        content = window_title
-                    else:
-                        # Use the window title as context
-                        content = f"Context: {window_title}"
+                    # Check if anything changed
+                    if (selected_text != last_selection or 
+                        cursor_pos != last_pos or 
+                        window_title != last_window):
+                        
+                        if selected_text:
+                            logger.info(f"Text selected in {window_title}: {selected_text[:50]}...")
+                            # Get window info for context
+                            context = {
+                                'cursor_pos': cursor_pos,
+                                'app_name': self.detect_app_by_name(window_title),
+                                'window_title': window_title,
+                                'file_extension': self.detect_language_by_extension(window_title)
+                            }
+                            # Request explanation with context
+                            self.ai_widget.request_explanation(selected_text, context)
+                        
+                        last_pos = cursor_pos
+                        last_selection = selected_text
+                        last_window = window_title
                     
-                    # Only request completion if content has changed
-                    if content != last_content:
-                        last_content = content
-                        # Request completion if AI is enabled
-                        self.ai_widget.request_completion(
-                            content=content,
-                            cursor_position=0,  # For now, we'll use 0
-                            selection=selected_text,
-                            file_extension=file_extension,
-                            app_name=app_name
-                        )
+                    time.sleep(0.1)  # Reduce CPU usage
                     
                 except Exception as e:
-                    print(f"Error in cursor monitor: {str(e)}")
+                    logger.error(f"Error in cursor monitor: {str(e)}")
+                    time.sleep(1)  # Longer delay on error
+        
+        self._monitor_thread = threading.Thread(target=monitor, daemon=True)
+        self._monitor_thread.start()
+
+    def _get_selected_text(self) -> Optional[str]:
+        """Get selected text from active window with improved error handling."""
+        try:
+            hwnd = win32gui.GetForegroundWindow()
+            if not hwnd:
+                return None
                 
-                time.sleep(0.5)  # Check every 500ms to reduce CPU usage
-        
-        # Start monitoring in a separate thread
-        threading.Thread(target=monitor_cursor, daemon=True).start()
-    
-    def handle_ai_completion(self, completion: str):
-        """Handle AI completion result."""
-        if not completion:
-            return
+            # Get window class name for debugging
+            class_name = win32gui.GetClassName(hwnd)
+            window_title = win32gui.GetWindowText(hwnd)
+            logger.debug(f"Active window class: {class_name}, title: {window_title}")
             
-        # Create completion widget
-        completion_widget = QWidget()
-        completion_layout = QVBoxLayout()
-        completion_layout.setContentsMargins(10, 5, 10, 5)
-        
-        # Add completion text
-        completion_label = QLabel(completion)
-        completion_label.setStyleSheet("""
-            QLabel {
-                color: #aeefff;
-                background-color: #2d2d2d;
-                border: 1px solid #3d3d3d;
-                border-radius: 4px;
-                padding: 8px;
-                font-family: 'Consolas', monospace;
-                font-size: 14px;
-                margin-bottom: 5px;
+            # Skip if it's our own window
+            if class_name == "Qt690QWindowToolSaveBits" or window_title == self.windowTitle():
+                return None
+            
+            # Try direct selection first for specific window types
+            if "Chrome" in class_name or "Mozilla" in class_name:
+                text = self._get_selection_direct(hwnd)
+                if text and text.strip():
+                    logger.info(f"Got direct selection: {text[:30]}...")
+                    return text.strip()
+            
+            # Fallback to clipboard method
+            text = self._get_selection_via_clipboard()
+            if text and text.strip():
+                logger.info(f"Got clipboard selection: {text[:30]}...")
+                return text.strip()
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error getting selected text: {str(e)}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            return None
+
+    def _get_selection_via_clipboard(self) -> Optional[str]:
+        """Get selected text via clipboard with improved error handling."""
+        try:
+            # Save current clipboard content
+            old_clipboard = QGuiApplication.clipboard().text()
+            
+            # Clear clipboard
+            QGuiApplication.clipboard().clear()
+            
+            # Send Ctrl+C with proper key sequence
+            win32api.keybd_event(win32con.VK_CONTROL, 0, 0, 0)
+            time.sleep(0.05)  # Small delay for key press
+            win32api.keybd_event(ord('C'), 0, 0, 0)
+            time.sleep(0.05)  # Small delay for key press
+            win32api.keybd_event(ord('C'), 0, win32con.KEYEVENTF_KEYUP, 0)
+            
+            # Wait for clipboard to update
+            time.sleep(0.1)
+            
+            # Get new clipboard content
+            new_text = QGuiApplication.clipboard().text()
+            
+            # Restore old clipboard content
+            QGuiApplication.clipboard().setText(old_clipboard)
+            
+            # Only return if we got new text
+            if new_text and new_text != old_clipboard and new_text.strip():
+                return new_text.strip()
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error in clipboard selection: {str(e)}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            return None
+
+    def _get_selection_direct(self, hwnd) -> Optional[str]:
+        """Get selected text directly from window with improved error handling."""
+        try:
+            # Try EM_GETSELTEXT first for edit controls
+            try:
+                length = ctypes.windll.user32.SendMessageW(hwnd, 0x043E, 0, 0)  # EM_GETSELTEXT
+                if length > 0:
+                    buffer = ctypes.create_unicode_buffer(length + 1)
+                    ctypes.windll.user32.SendMessageW(hwnd, 0x043E, length + 1, buffer)  # EM_GETSELTEXT
+                    text = buffer.value
+                    if text and text.strip():
+                        return text.strip()
+            except Exception as e:
+                logger.debug(f"EM_GETSELTEXT failed: {str(e)}")
+            
+            # Fallback to WM_GETTEXT
+            length = win32gui.SendMessage(hwnd, win32con.WM_GETTEXTLENGTH, 0, 0)
+            if not length:
+                return None
+                
+            buffer = win32gui.PyMakeBuffer(length + 1)
+            win32gui.SendMessage(hwnd, win32con.WM_GETTEXT, length + 1, buffer)
+            text = buffer.tobytes().decode('utf-8', errors='ignore').rstrip('\0')
+            
+            return text.strip() if text else None
+            
+        except Exception as e:
+            logger.error(f"Error in direct selection: {str(e)}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            return None
+
+    def handle_ai_completion(self, completion: str):
+        """Handle AI completion with better error handling."""
+        try:
+            if not completion:
+                logger.warning("Empty completion received")
+                return
+                
+            logger.info(f"Handling AI completion: {completion[:50]}...")
+            
+            # Create completion widget
+            completion_widget = QWidget(self)
+            completion_widget.setStyleSheet("""
+                QWidget {
+                    background-color: rgba(60, 60, 60, 0.95);
+                    border: 1px solid rgba(100, 100, 100, 0.5);
+                    border-radius: 5px;
+                    padding: 5px;
+                }
+            """)
+            
+            layout = QVBoxLayout(completion_widget)
+            
+            # Add completion text
+            text = QLabel(completion)
+            text.setWordWrap(True)
+            text.setStyleSheet("color: white;")
+            layout.addWidget(text)
+            
+            # Position the widget
+            completion_widget.adjustSize()
+            completion_widget.move(
+                (self.width() - completion_widget.width()) // 2,
+                self.height() - completion_widget.height() - 10
+            )
+            
+            completion_widget.show()
+            
+            # Add a small delay before removing the completion
+            QTimer.singleShot(30000, lambda: completion_widget.deleteLater())
+            
+        except Exception as e:
+            logger.error(f"Error handling AI completion: {e}")
+            logger.error(traceback.format_exc())
+
+    def hideEvent(self, event):
+        """Handle hide event with improved error handling."""
+        try:
+            logger.info("Window hide event received")
+            super().hideEvent(event)
+        except Exception as e:
+            logger.error(f"Error in hideEvent: {str(e)}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+
+    def _get_window_info(self):
+        """Get information about the active window."""
+        try:
+            hwnd = win32gui.GetForegroundWindow()
+            if not hwnd:
+                return {}
+            
+            window_title = win32gui.GetWindowText(hwnd)
+            class_name = win32gui.GetClassName(hwnd)
+            
+            # Detect app name
+            app_name = None
+            if "Mozilla" in class_name:
+                app_name = "Firefox"
+            elif "Chrome" in class_name:
+                app_name = "Chrome"
+            elif "Cursor" in window_title:
+                app_name = "Cursor"
+            
+            # Detect file extension
+            file_extension = None
+            if window_title:
+                # Convert window title to string and lowercase
+                title_lower = str(window_title).lower()
+                # Find all extensions
+                extensions = [ext for ext in ['.py', '.js', '.html', '.css', '.json', '.md'] if ext in title_lower]
+                if extensions:
+                    file_extension = extensions[-1]  # Get the last extension found
+            
+            return {
+                'window_title': window_title,
+                'class_name': class_name,
+                'app_name': app_name,
+                'file_extension': file_extension
             }
-        """)
-        completion_label.setWordWrap(True)
-        completion_layout.addWidget(completion_label)
-        
-        # Add copy button
-        copy_button = QPushButton("Copy")
-        copy_button.setStyleSheet("""
-            QPushButton {
-                background-color: #4CAF50;
-                color: white;
-                border: none;
-                border-radius: 4px;
-                padding: 4px 8px;
-                font-size: 12px;
-                margin-top: 5px;
-            }
-            QPushButton:hover {
-                background-color: #45a049;
-            }
-        """)
-        copy_button.clicked.connect(lambda: QApplication.clipboard().setText(completion))
-        completion_layout.addWidget(copy_button)
-        
-        completion_widget.setLayout(completion_layout)
-        
-        # Clear existing completions
-        for i in reversed(range(self.content_layout.count())):
-            widget = self.content_layout.itemAt(i).widget()
-            if widget and isinstance(widget, QWidget) and widget.property("is_completion"):
-                widget.deleteLater()
-        
-        # Mark as completion widget
-        completion_widget.setProperty("is_completion", True)
-        
-        # Add to content layout at the top
-        self.content_layout.insertWidget(0, completion_widget)
-        
-        # Make sure the completion is visible
-        self.scroll.verticalScrollBar().setValue(0)
-        completion_widget.show()
-        
-        # Add a small delay before removing the completion
-        QTimer.singleShot(30000, lambda: completion_widget.deleteLater())  # Increased to 30 seconds 
+            
+        except Exception as e:
+            logger.error(f"Error getting window info: {str(e)}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            return {} 
