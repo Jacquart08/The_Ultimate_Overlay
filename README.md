@@ -1,5 +1,7 @@
 # UltimateOverlay
 
+This is the first version of the overlay, I don't work yet at enhencing this part as I am focus now on the implementation of an LLM to the overlay. I will come back to it later.
+
 A lightweight, context-aware overlay application that displays shortcuts, syntax, or functions for the active application or programming language on your screen. Designed to be human-friendly, easily maintainable, and user extensible.
 
 ## How it works ?
