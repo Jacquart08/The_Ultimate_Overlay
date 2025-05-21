@@ -1,8 +1,8 @@
 """
 AI widget for the overlay.
 """
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLabel, QProgressBar, QTextEdit, QToolTip, QMessageBox
-from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QPoint, QSize
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLabel, QProgressBar, QTextEdit, QToolTip, QMessageBox, QApplication
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QPoint, QSize, QRect
 from PyQt6.QtGui import QIcon, QFont, QCursor
 import logging
 import os
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 class AIWidget(QWidget):
     """Widget for AI features."""
     
-    completion_ready = pyqtSignal(str)
+    completion_ready = pyqtSignal(str, str)  # completion, query_text
     download_progress = pyqtSignal(int)
     download_complete = pyqtSignal()
     download_failed = pyqtSignal()
@@ -32,6 +32,9 @@ class AIWidget(QWidget):
         self.is_loading = False
         self.is_downloading = False
         self.explanation_widgets = []
+        self._pending_text = None
+        self._pending_context = None
+        self._query_text = None
         
         # Initialize components
         self.config = AIConfig()
@@ -359,27 +362,53 @@ class AIWidget(QWidget):
         except Exception as e:
             logger.error(f"Error stopping AI: {str(e)}")
     
-    def request_explanation(self, selected_text, context=None):
+    def request_explanation(self, selected_text, context=None, query_text=None):
         """Request an explanation with proper error handling."""
         if not selected_text or not self.is_enabled or self.is_loading:
             logger.warning(f"Cannot generate explanation: enabled={self.is_enabled}, loading={self.is_loading}")
             return
             
         try:
-            # Show loading state
-            cursor_pos = context.get('cursor_pos', QCursor.pos()) if context else QCursor.pos()
-            QToolTip.showText(cursor_pos, "Analyzing selected text...", self)
+            # Store selected text and context for processing
+            self._pending_text = selected_text
+            self._pending_context = context
+            self._query_text = query_text
             
-            # Start explanation in background thread
-            threading.Thread(target=self._generate_explanation, 
-                           args=(selected_text, context),
-                           daemon=True).start()
+            # Use QTimer to process in the main thread
+            QTimer.singleShot(0, self._process_explanation_request)
             
         except Exception as e:
             logger.error(f"Error requesting explanation: {str(e)}")
-            QToolTip.showText(QCursor.pos(), f"Error: {str(e)}", self)
     
-    def _generate_explanation(self, selected_text, context):
+    def _process_explanation_request(self):
+        """Process explanation request in the main thread."""
+        try:
+            if not hasattr(self, '_pending_text') or not self._pending_text:
+                return
+                
+            # Get stored text and context
+            selected_text = self._pending_text
+            context = self._pending_context
+            query_text = self._query_text
+            
+            # Show a temporary status message
+            self.status_label.setText("AI: Generating...")
+            
+            # Start explanation in background thread
+            threading.Thread(target=self._generate_explanation, 
+                           args=(selected_text, context, query_text),
+                           daemon=True).start()
+            
+        except Exception as e:
+            logger.error(f"Error processing explanation request: {str(e)}")
+            
+        finally:
+            # Clear pending data
+            self._pending_text = None
+            self._pending_context = None
+            self._query_text = None
+    
+    def _generate_explanation(self, selected_text, context=None, query_text=None):
         """Generate explanation with error handling."""
         try:
             logger.info(f"Generating explanation for text: {selected_text[:50]}...")
@@ -390,47 +419,23 @@ class AIWidget(QWidget):
                 context=context
             )
             
+            # Use Qt's signal/slot to update UI from the main thread
             if completion:
                 logger.info("Generated completion successfully")
-                cursor_pos = context.get('cursor_pos', QCursor.pos()) if context else QCursor.pos()
-                
-                # Show tooltip with completion
-                QToolTip.showText(cursor_pos, completion, self)
-                logger.info(f"Showing tooltip with completion: {completion[:100]}...")
-                
-                # Auto-hide after 30 seconds
-                time.sleep(30)
-                QToolTip.hideText()
-                logger.info("Tooltip hidden after timeout")
+                # Update status
+                QTimer.singleShot(0, lambda: self.status_label.setText("AI: Ready"))
+                # Emit the completion signal to display in overlay
+                self.completion_ready.emit(completion, query_text)
             else:
                 logger.warning("No completion generated")
-                cursor_pos = context.get('cursor_pos', QCursor.pos()) if context else QCursor.pos()
-                QToolTip.showText(cursor_pos, "No completion generated. Please try again.", self)
-                time.sleep(5)
-                QToolTip.hideText()
+                QTimer.singleShot(0, lambda: self.status_label.setText("AI: Failed"))
+                # Emit an error message for display
+                self.completion_ready.emit("No explanation could be generated. Please try with different text.", query_text)
             
         except Exception as e:
             logger.error(f"Error generating explanation: {str(e)}")
             import traceback
             logger.error(f"Traceback: {traceback.format_exc()}")
-            cursor_pos = context.get('cursor_pos', QCursor.pos()) if context else QCursor.pos()
-            QToolTip.showText(cursor_pos, f"Error: {str(e)}", self)
-            time.sleep(5)
-            QToolTip.hideText()
-    
-    def copy_explanation(self):
-        """Copy explanation to clipboard with error handling."""
-        try:
-            text = QToolTip.text()
-            if text:
-                from PyQt6.QtWidgets import QApplication
-                QApplication.clipboard().setText(text)
-        except Exception as e:
-            logger.error(f"Error copying explanation: {str(e)}")
-    
-    def clear_explanation(self):
-        """Clear explanation with error handling."""
-        try:
-            QToolTip.hideText()
-        except Exception as e:
-            logger.error(f"Error clearing explanation: {str(e)}") 
+            # Set status to error and emit error message
+            QTimer.singleShot(0, lambda: self.status_label.setText("AI: Error"))
+            self.completion_ready.emit(f"Error generating explanation: {str(e)}", query_text) 
