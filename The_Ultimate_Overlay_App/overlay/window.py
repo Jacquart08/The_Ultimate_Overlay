@@ -2,18 +2,33 @@
 UltimateOverlay - Overlay window logic.
 Provides a resizable, scrollable, context-aware overlay with Home/Read buttons.
 """
-from PyQt6.QtWidgets import QApplication, QLabel, QWidget, QVBoxLayout, QScrollArea, QPushButton, QHBoxLayout, QToolTip, QSizePolicy, QLineEdit, QToolButton, QListWidget
+from PyQt6.QtWidgets import QApplication, QLabel, QWidget, QVBoxLayout, QScrollArea, QPushButton, QHBoxLayout, QToolTip, QSizePolicy, QLineEdit, QToolButton, QListWidget, QFrame
 from PyQt6.QtCore import Qt, QPoint, QTimer, pyqtSignal
 from PyQt6.QtGui import QIcon, QGuiApplication, QCursor
 import sys
-from context.detector import get_active_window_title
-from context.shortcuts import get_shortcuts_for_app
+from The_Ultimate_Overlay_App.context.detector import get_active_window_title
+from The_Ultimate_Overlay_App.context.shortcuts import get_shortcuts_for_app
+from The_Ultimate_Overlay_App.overlay.ai_widget import AIWidget
 import json
 import os
 import threading
 import keyboard
 import webbrowser
 import re
+import time
+import win32gui
+import win32con
+import win32com.client  # Required for accessibility APIs
+import logging
+from typing import Optional
+
+# Set up logging
+logger = logging.getLogger(__name__)
+handler = logging.StreamHandler()
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+logger.setLevel(logging.INFO)
 
 KNOWLEDGE_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config', 'knowledge.json')
 FAVORITES_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config', 'favorites.json')
@@ -152,16 +167,93 @@ class MovableOverlayWidget(QWidget):
 
         self.home_locked = False
         self.last_real_window_title = None
+        # Initialize monitor thread control
+        self._stop_monitor = True
+        self._monitor_thread = None
+        # AI content storage
+        self.ai_content = None
+        self.selected_text = None
 
         main_layout = QVBoxLayout()
-        button_layout = QHBoxLayout()
+        
+        # Top row with Home/Read/AI buttons
+        top_layout = QHBoxLayout()
+        top_layout.setSpacing(8)
+        
+        # Home button
         self.home_button = QPushButton("Home")
+        self.home_button.setFixedSize(60, 30)
+        self.home_button.setStyleSheet("""
+            QPushButton {
+                background-color: #2d2d2d;
+                color: #ffffff;
+                border: 1px solid #3d3d3d;
+                border-radius: 4px;
+                padding: 5px 10px;
+                font-size: 12px;
+            }
+            QPushButton:hover {
+                background-color: #3d3d3d;
+                border-color: #4d4d4d;
+            }
+        """)
         self.home_button.clicked.connect(self.lock_home)
+        top_layout.addWidget(self.home_button)
+        
+        # Read button
         self.read_button = QPushButton("Read")
+        self.read_button.setFixedSize(60, 30)
+        self.read_button.setStyleSheet("""
+            QPushButton {
+                background-color: #2d2d2d;
+                color: #ffffff;
+                border: 1px solid #3d3d3d;
+                border-radius: 4px;
+                padding: 5px 10px;
+                font-size: 12px;
+            }
+            QPushButton:hover {
+                background-color: #3d3d3d;
+                border-color: #4d4d4d;
+            }
+        """)
         self.read_button.clicked.connect(self.unlock_home)
-        button_layout.addWidget(self.home_button)
-        button_layout.addWidget(self.read_button)
-        main_layout.addLayout(button_layout)
+        top_layout.addWidget(self.read_button)
+        
+        # AI button (reuse the same style and size)
+        self.ai_widget = AIWidget()
+        self.ai_widget.toggle_button.setFixedSize(60, 30)
+        self.ai_widget.toggle_button.setStyleSheet("""
+            QPushButton {
+                background-color: #2d2d2d;
+                color: #ffffff;
+                border: 1px solid #3d3d3d;
+                border-radius: 4px;
+                padding: 5px 10px;
+                font-size: 12px;
+            }
+            QPushButton:hover {
+                background-color: #3d3d3d;
+                border-color: #4d4d4d;
+            }
+            QPushButton:checked {
+                background-color: #4CAF50;
+                border-color: #45a049;
+                color: white;
+            }
+            QPushButton:disabled {
+                background-color: #1d1d1d;
+                color: #666666;
+                border-color: #2d2d2d;
+            }
+        """)
+        # Connect AI button toggle to text monitoring
+        self.ai_widget.toggle_button.toggled.connect(self.toggle_text_monitoring)
+        # Connect AI widget completion signal to display AI content
+        self.ai_widget.completion_ready.connect(self.display_ai_content)
+        top_layout.addWidget(self.ai_widget.toggle_button)
+        
+        main_layout.addLayout(top_layout)
 
         # Context label
         self.context_label = QLabel()
@@ -201,6 +293,9 @@ class MovableOverlayWidget(QWidget):
         self.ctrl_changed.connect(self.update_overlay)
         # Start global Ctrl listener in a thread
         self._start_ctrl_listener()
+        
+        # Start monitoring cursor position and selection
+        self._start_cursor_monitor()
 
     def _start_ctrl_listener(self):
         def listen_ctrl():
@@ -482,8 +577,11 @@ class MovableOverlayWidget(QWidget):
         layout.addLayout(actions_layout)
 
     def update_overlay(self):
+        # Skip update if mouse is over the widget to prevent flicker
         if self.rect().contains(self.mapFromGlobal(QCursor.pos())):
             return
+            
+        # Get active window and update context info
         search_text = self.search_bar.text().strip().lower() if hasattr(self, 'search_bar') else ""
         window_title = get_active_window_title()
         if window_title and window_title.strip() == self.windowTitle():
@@ -491,6 +589,8 @@ class MovableOverlayWidget(QWidget):
         else:
             if window_title:
                 self.last_real_window_title = window_title
+                
+        # Update context information display
         context_str = window_title or "Unknown context"
         language = self.detect_language_by_extension(window_title)
         app_name = self.detect_app_by_name(window_title)
@@ -500,17 +600,30 @@ class MovableOverlayWidget(QWidget):
             context_str = f"{context_str}<br><span style='color:#aeefff;'>App: <b>{app_name}</b></span>"
         self.context_label.setText(context_str)
         self.context_label.setTextFormat(Qt.TextFormat.RichText)
-        print(f"[DEBUG] update_overlay called. ctrl_pressed={self.ctrl_pressed}, has_focus={self.has_focus}, block_updates={self.block_updates}, home_locked={self.home_locked}, window_title={window_title}")
+        
+        # Log current state
+        logger.debug(f"update_overlay called. ctrl_pressed={self.ctrl_pressed}, has_focus={self.has_focus}, block_updates={self.block_updates}, home_locked={self.home_locked}, window_title={window_title}")
+        
+        # Clear existing content
         for i in reversed(range(self.content_layout.count())):
             widget = self.content_layout.itemAt(i).widget()
             if widget:
                 widget.setParent(None)
+                
+        # Check if AI feature is enabled and there's AI content to display
+        # This takes precedence over other content modes
+        if self.ai_widget.is_enabled and self.ai_content:
+            self.display_ai_content_ui()
+            return
+            
+        # Home apps list for special home page handling
         home_apps = [
             'excel', 'microsoft excel', 'word', 'microsoft word', 'powerpoint', 'microsoft powerpoint',
             'outlook', 'microsoft outlook', 'onenote', 'microsoft onenote', 'teams', 'microsoft teams',
             'firefox', 'mozilla firefox', 'chrome', 'google chrome', 'edge', 'microsoft edge', 'internet explorer',
             'steam', 'epic games', 'discord', 'spotify', 'windows terminal', 'cmd.exe', 'powershell', 'windows powershell'
         ]
+        
         if self.ctrl_pressed:
             # Shortcuts tab: use app name only
             app_name = self.detect_app_by_name(window_title)
@@ -761,4 +874,265 @@ class MovableOverlayWidget(QWidget):
         else:
             self.favorites['shortcuts'].insert(0, shortcut)
         save_favorites(self.favorites)
+        self.update_overlay()
+
+    def toggle_text_monitoring(self, enabled):
+        """Toggle text selection monitoring based on AI button state"""
+        if enabled:
+            self._start_cursor_monitor()
+        else:
+            self._stop_cursor_monitor()
+
+    def _start_cursor_monitor(self):
+        """Start monitoring cursor position and selection."""
+        if self._monitor_thread and self._monitor_thread.is_alive():
+            return  # Already running
+            
+        self._stop_monitor = False
+        self._monitor_thread = threading.Thread(target=self._monitor_function, daemon=True)
+        self._monitor_thread.start()
+        logger.info("Text selection monitoring started")
+    
+    def _stop_cursor_monitor(self):
+        """Stop monitoring cursor position and selection."""
+        self._stop_monitor = True
+        if self._monitor_thread:
+            self._monitor_thread.join(timeout=1.0)
+        logger.info("Text selection monitoring stopped")
+    
+    def _monitor_function(self):
+        """Monitor cursor position and selected text."""
+        last_selection = None
+        while not self._stop_monitor:
+            try:
+                # Get selected text from active window
+                selected_text = self._get_selected_text()
+                
+                # Process only if selection changed and not empty
+                if selected_text and selected_text != last_selection:
+                    logger.info(f"Text selected: {selected_text[:50]}...")
+                    
+                    # Store the selected text
+                    self.selected_text = selected_text
+                    
+                    # Get cursor position and window info for context
+                    cursor_pos = QCursor.pos()
+                    window_info = self._get_window_info()
+                    context = {
+                        'cursor_pos': cursor_pos,
+                        'app_name': window_info.get('app_name'),
+                        'window_title': window_info.get('window_title'),
+                        'file_extension': window_info.get('file_extension')
+                    }
+                    
+                    # Request explanation with context and pass selected text for display
+                    self.ai_widget.request_explanation(selected_text, context, self.selected_text)
+                
+                last_selection = selected_text
+                time.sleep(0.2)  # Reduce CPU usage
+                
+            except Exception as e:
+                logger.error(f"Error in cursor monitor: {str(e)}")
+                time.sleep(1)  # Longer delay on error
+
+    def _get_window_info(self):
+        """Get information about the current active window."""
+        try:
+            hwnd = win32gui.GetForegroundWindow()
+            window_title = win32gui.GetWindowText(hwnd)
+            app_name = self.detect_app_by_name(window_title)
+            file_ext = None
+            
+            # Try to detect file extension from window title
+            matches = list(re.finditer(r'\.([a-zA-Z0-9]+)', window_title))
+            if matches:
+                file_ext = matches[-1].group(1)
+                
+            return {
+                'app_name': app_name,
+                'window_title': window_title,
+                'file_extension': file_ext
+            }
+        except Exception as e:
+            logger.error(f"Error getting window info: {str(e)}")
+            return {'app_name': None, 'window_title': None, 'file_extension': None}
+
+    def _get_selected_text(self) -> Optional[str]:
+        """Get selected text from active window."""
+        try:
+            # Get active window
+            hwnd = win32gui.GetForegroundWindow()
+            if not hwnd:
+                return None
+                
+            # Get window class name
+            class_name = win32gui.GetClassName(hwnd)
+            logger.debug(f"Active window class: {class_name}")
+            
+            # Handle different window types - use direct selection method instead of clipboard
+            return self._get_selection_direct(hwnd)
+                
+        except Exception as e:
+            logger.error(f"Error getting selected text: {str(e)}")
+            return None
+
+    def _get_selection_direct(self, hwnd) -> Optional[str]:
+        """Get selected text using direct method."""
+        try:
+            # First try with Windows API EM_GETSEL to find selection boundaries
+            try:
+                # This only works for standard edit controls
+                start, end = win32gui.SendMessage(hwnd, win32con.EM_GETSEL, 0, 0)
+                if start != end:  # There is a selection
+                    # Get all text
+                    length = win32gui.SendMessage(hwnd, win32con.WM_GETTEXTLENGTH, 0, 0)
+                    buffer = win32gui.PyMakeBuffer(length + 1)
+                    win32gui.SendMessage(hwnd, win32con.WM_GETTEXT, length + 1, buffer)
+                    text = buffer.tobytes().decode('utf-8', errors='ignore')
+                    
+                    # Return just the selected portion
+                    return text[start:end]
+            except Exception as e:
+                logger.debug(f"Standard edit control access failed: {str(e)}")
+            
+            # Try UI Automation as fallback (more reliable for modern applications)
+            try:
+                import uiautomation as auto
+                control = auto.ControlFromHandle(hwnd)
+                if control:
+                    # Try to get selection using UI Automation
+                    selection = None
+                    if hasattr(control, 'GetSelection'):
+                        selection = control.GetSelection()
+                    elif hasattr(control, 'GetSelectionPattern'):
+                        pattern = control.GetSelectionPattern()
+                        if pattern:
+                            selection = pattern.GetSelection()
+                    
+                    if selection:
+                        return selection
+                    
+                    # If no selection found, try to get the text content
+                    if hasattr(control, 'GetTextPattern'):
+                        pattern = control.GetTextPattern()
+                        if pattern and pattern.DocumentRange:
+                            return pattern.DocumentRange.GetText(-1)
+            except ImportError:
+                logger.debug("uiautomation module not available")
+            except Exception as e:
+                logger.debug(f"UI Automation access failed: {str(e)}")
+            
+            # Fallback method for basic window text (less likely to get selection)
+            try:
+                text = win32gui.GetWindowText(hwnd)
+                if text:
+                    return text.strip() or None
+            except Exception as e:
+                logger.debug(f"GetWindowText failed: {str(e)}")
+            
+            return None
+        except Exception as e:
+            logger.error(f"Error getting selection directly: {str(e)}")
+            return None
+
+    def display_ai_content(self, completion, query=None):
+        """Display AI-generated content in the overlay."""
+        logger.info("Displaying AI content in overlay")
+        self.ai_content = completion
+        self.selected_text = query if query else self.selected_text
+        
+        # Force update overlay to display AI content
+        self.update_overlay()
+
+    def display_ai_content_ui(self):
+        """Display AI-generated content in the overlay UI."""
+        # Create container for AI content
+        ai_container = QWidget()
+        ai_layout = QVBoxLayout(ai_container)
+        ai_layout.setContentsMargins(10, 10, 10, 10)
+        
+        # Title with selected text
+        if self.selected_text:
+            query_text = self.selected_text
+            if len(query_text) > 50:
+                query_text = query_text[:47] + "..."
+            
+            title_label = QLabel(f"<b>AI Analysis of:</b> {query_text}")
+            title_label.setStyleSheet("color: #ffffff; font-size: 14px;")
+            title_label.setWordWrap(True)
+            ai_layout.addWidget(title_label)
+        
+        # Horizontal separator
+        separator = QFrame()
+        separator.setFrameShape(QFrame.Shape.HLine)
+        separator.setFrameShadow(QFrame.Shadow.Sunken)
+        separator.setStyleSheet("background-color: #3d3d3d;")
+        ai_layout.addWidget(separator)
+        
+        # AI response content
+        content_label = QLabel(self.ai_content)
+        content_label.setStyleSheet("""
+            color: #aeefff; 
+            background-color: #2d2d2d;
+            border: 1px solid #3d3d3d;
+            border-radius: 4px;
+            padding: 10px;
+            font-size: 13px;
+        """)
+        content_label.setWordWrap(True)
+        content_label.setTextFormat(Qt.TextFormat.RichText)
+        ai_layout.addWidget(content_label)
+        
+        # Action buttons
+        button_layout = QHBoxLayout()
+        
+        # Copy button
+        copy_button = QPushButton("Copy")
+        copy_button.setStyleSheet("""
+            QPushButton {
+                background-color: #3d3d3d;
+                color: #ffffff;
+                border: none;
+                border-radius: 4px;
+                padding: 5px 15px;
+                font-size: 12px;
+            }
+            QPushButton:hover {
+                background-color: #4d4d4d;
+            }
+        """)
+        copy_button.clicked.connect(lambda: QGuiApplication.clipboard().setText(self.ai_content))
+        button_layout.addWidget(copy_button)
+        
+        # Clear button
+        clear_button = QPushButton("Clear")
+        clear_button.setStyleSheet("""
+            QPushButton {
+                background-color: #3d3d3d;
+                color: #ffffff;
+                border: none;
+                border-radius: 4px;
+                padding: 5px 15px;
+                font-size: 12px;
+            }
+            QPushButton:hover {
+                background-color: #4d4d4d;
+            }
+        """)
+        clear_button.clicked.connect(self.clear_ai_content)
+        button_layout.addWidget(clear_button)
+        
+        button_layout.addStretch()
+        ai_layout.addLayout(button_layout)
+        
+        # Add some stretch at the bottom
+        ai_layout.addStretch()
+        
+        # Add to main content
+        self.content_layout.addWidget(ai_container)
+    
+    def clear_ai_content(self):
+        """Clear AI content and revert to normal display."""
+        self.ai_content = None
+        self.selected_text = None
         self.update_overlay() 
