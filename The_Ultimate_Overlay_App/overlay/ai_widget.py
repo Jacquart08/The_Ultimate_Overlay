@@ -11,7 +11,6 @@ from The_Ultimate_Overlay_App.ai.completion_system import CompletionSystem
 from The_Ultimate_Overlay_App.ai.model_downloader import ModelDownloader
 import threading
 import time
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -26,74 +25,33 @@ class AIWidget(QWidget):
     load_failed = pyqtSignal()
     
     def __init__(self, parent=None):
-        logger.info("Initializing AIWidget")
-        try:
-            super().__init__(parent)
-            logger.info("Super().__init__() completed")
-            
-            # Initialize state variables first
-            self.is_enabled = False
-            self.is_loading = False
-            self.is_downloading = False
-            self.explanation_widgets = []
-            logger.info("State variables initialized")
-            
-            # Initialize components
-            try:
-                logger.info("Creating AIConfig")
-                self.config = AIConfig()
-                logger.info("AIConfig created")
-                
-                logger.info("Creating CompletionSystem")
-                self.completion_system = CompletionSystem(self.config)
-                logger.info("CompletionSystem created")
-                
-                logger.info("Creating ModelDownloader")
-                self.model_downloader = ModelDownloader(self.config)
-                logger.info("ModelDownloader created")
-            except Exception as e:
-                logger.error(f"Error initializing AI components: {str(e)}")
-                import traceback
-                logger.error(f"Traceback: {traceback.format_exc()}")
-                # Initialize with None to prevent further errors
-                self.config = None
-                self.completion_system = None
-                self.model_downloader = None
-            
-            # Connect signals
-            try:
-                self.download_progress.connect(self.update_download_progress)
-                self.download_complete.connect(self._download_complete)
-                self.download_failed.connect(self._download_failed)
-                self.load_complete.connect(self._load_complete)
-                self.load_failed.connect(self._load_failed)
-                logger.info("Signals connected")
-            except Exception as e:
-                logger.error(f"Error connecting signals: {str(e)}")
-            
-            # Set up UI
-            try:
-                self.setup_ui()
-                logger.info("UI setup completed")
-            except Exception as e:
-                logger.error(f"Error setting up UI: {str(e)}")
-            
-            # Start periodic model status check
-            try:
-                self.status_timer = QTimer()
-                self.status_timer.timeout.connect(self.refresh_model_status)
-                self.status_timer.start(5000)  # Check every 5 seconds
-                logger.info("Status timer started")
-            except Exception as e:
-                logger.error(f"Error starting status timer: {str(e)}")
-            
-            logger.info("AIWidget initialization completed")
-            
-        except Exception as e:
-            logger.error(f"Error in AIWidget.__init__: {str(e)}")
-            import traceback
-            logger.error(f"Traceback: {traceback.format_exc()}")
-            raise
+        super().__init__(parent)
+        
+        # Initialize state variables first
+        self.is_enabled = False
+        self.is_loading = False
+        self.is_downloading = False
+        self.explanation_widgets = []
+        
+        # Initialize components
+        self.config = AIConfig()
+        self.completion_system = CompletionSystem(self.config)
+        self.model_downloader = ModelDownloader(self.config)
+        
+        # Connect signals
+        self.download_progress.connect(self.update_download_progress)
+        self.download_complete.connect(self._download_complete)
+        self.download_failed.connect(self._download_failed)
+        self.load_complete.connect(self._load_complete)
+        self.load_failed.connect(self._load_failed)
+        
+        # Set up UI
+        self.setup_ui()
+        
+        # Start periodic model status check
+        self.status_timer = QTimer()
+        self.status_timer.timeout.connect(self.refresh_model_status)
+        self.status_timer.start(5000)  # Check every 5 seconds
         
     def setup_ui(self):
         """Set up the UI components."""
@@ -401,63 +359,64 @@ class AIWidget(QWidget):
         except Exception as e:
             logger.error(f"Error stopping AI: {str(e)}")
     
-    def request_explanation(self, selected_text: str, context: dict):
-        """Request an explanation for the selected text."""
-        if not self.is_enabled or self.is_loading:
-            logger.debug("AI is not enabled or still loading")
+    def request_explanation(self, selected_text, context=None):
+        """Request an explanation with proper error handling."""
+        if not selected_text or not self.is_enabled or self.is_loading:
+            logger.warning(f"Cannot generate explanation: enabled={self.is_enabled}, loading={self.is_loading}")
             return
             
-        if not selected_text or not selected_text.strip():
-            logger.debug("No text selected")
-            return
-            
-        logger.info(f"Requesting explanation for text: {selected_text[:50]}...")
-        
-        # Show initial tooltip
-        cursor_pos = context.get('cursor_pos', QCursor.pos())
-        QToolTip.showText(cursor_pos, "Analyzing selected text...", self)
-        
         try:
-            # Generate explanation
-            completion = self._generate_explanation(selected_text, context)
+            # Show loading state
+            cursor_pos = context.get('cursor_pos', QCursor.pos()) if context else QCursor.pos()
+            QToolTip.showText(cursor_pos, "Analyzing selected text...", self)
+            
+            # Start explanation in background thread
+            threading.Thread(target=self._generate_explanation, 
+                           args=(selected_text, context),
+                           daemon=True).start()
+            
+        except Exception as e:
+            logger.error(f"Error requesting explanation: {str(e)}")
+            QToolTip.showText(QCursor.pos(), f"Error: {str(e)}", self)
+    
+    def _generate_explanation(self, selected_text, context):
+        """Generate explanation with error handling."""
+        try:
+            logger.info(f"Generating explanation for text: {selected_text[:50]}...")
+            
+            # Generate completion using the model
+            completion = self.completion_system.get_completion(
+                text=selected_text,
+                context=context
+            )
             
             if completion:
-                logger.info(f"Generated completion: {completion[:50]}...")
-                # Show completion in tooltip
+                logger.info("Generated completion successfully")
+                cursor_pos = context.get('cursor_pos', QCursor.pos()) if context else QCursor.pos()
+                
+                # Show tooltip with completion
                 QToolTip.showText(cursor_pos, completion, self)
+                logger.info(f"Showing tooltip with completion: {completion[:100]}...")
+                
+                # Auto-hide after 30 seconds
+                time.sleep(30)
+                QToolTip.hideText()
+                logger.info("Tooltip hidden after timeout")
             else:
                 logger.warning("No completion generated")
-                QToolTip.showText(cursor_pos, "Could not generate explanation", self)
-                
+                cursor_pos = context.get('cursor_pos', QCursor.pos()) if context else QCursor.pos()
+                QToolTip.showText(cursor_pos, "No completion generated. Please try again.", self)
+                time.sleep(5)
+                QToolTip.hideText()
+            
         except Exception as e:
             logger.error(f"Error generating explanation: {str(e)}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            cursor_pos = context.get('cursor_pos', QCursor.pos()) if context else QCursor.pos()
             QToolTip.showText(cursor_pos, f"Error: {str(e)}", self)
-
-    def _generate_explanation(self, selected_text: str, context: dict) -> Optional[str]:
-        """Generate an explanation for the selected text."""
-        try:
-            if not self.model_manager or not self.model_manager.is_loaded():
-                logger.warning("Model not available for completion")
-                return None
-                
-            # Prepare prompt with context
-            prompt = f"Context: {context.get('app_name', 'Unknown')} - {context.get('window_title', '')}\n"
-            prompt += f"Selected text: {selected_text}\n"
-            prompt += "Please provide a helpful explanation or completion:"
-            
-            # Get completion from model
-            completion = self.model_manager.get_completion(prompt)
-            
-            if completion:
-                logger.info(f"Generated completion: {completion[:50]}...")
-                return completion
-            else:
-                logger.warning("No completion generated")
-                return None
-                
-        except Exception as e:
-            logger.error(f"Error generating explanation: {str(e)}")
-            return None
+            time.sleep(5)
+            QToolTip.hideText()
     
     def copy_explanation(self):
         """Copy explanation to clipboard with error handling."""
